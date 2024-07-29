@@ -139,7 +139,15 @@ left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_n
 where bpr.which = 'ແຜນເພີ່ມ' and bpr.staff_no is not null -- and bpr.now_result = 'Contracted' and bpr.disbursement_date_pay_date is null
 order by sme.id asc ;
 
-select * from tabSME_BO_and_Plan where name in (select id from SME_BO_and_Plan_report where date_report = '2024-06-21')
+
+-- manual 
+select bpr.* , case when bp.modified >= date(now()) then 'called' else 0 end `is_call_today`, sme.id 
+from SME_BO_and_Plan_report bpr left join tabSME_BO_and_Plan bp on (bpr.id = bp.name)
+left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where bpr.id in (660232,676963,684816,667507,702421,669877,701652,668932,666109,700152,692623,673173,665290,698424,694563,702424,702422,699114,668975,702429,694012,701712,674619,700369,671750,694011,689330,668552,699055,683674,682453,702439,701637,689916,695074,695049,688314,701297,697970,695343,687880,695060,673237,698370,691294,669010,681626,612164,678026,670059,618451,682065,671592,699770,688361,699755,681211,694851,674269,701660,699990,673957,667192,660199,682020,671761,641846,684366,698560,667929,696719,676269,691446,668582,690287,670287,668663,701676,666498,701503,661061,697119,701685,685352,668692,666437,673047,701674,700791,700789,669728,667060,684350,660692,695027,700956,698977,702001,701663,696754,700176,670306,698300,696173,702048,702017,699953,696647,699703,699913,676612,700542,698538,671713,692850,696929,689005,702150,701770,584252,696414,700758,665351,701356,698898,674754,664918,690018,700043,654141,696285,624539,664579,694592,689379,668442,688140,700507,663496,685050,695644,702154,700952,679034,671639,695423,702425,667030,700927,665868,700608,702085,701887,701684,670818,700511,654698,694430,702105,665492,700217,667204,702147,692701,666951,684510,648619,670014,699426,642494,702097,701197,700250,692926,664164,683082,662074,690388,695602,702094,672574,680164,693196,702110,700284,691453,665909,678241,664866,691536,695484,691508,697005,676078,684185,701049,672889,696640,691501,695038,676270,677904,671440,685572,680962,691835,698194,700386,700382,702014,696179,700120,702006,701435,682510,698520,701020,668538,694150,702004,671327,701023,670293,691772,700158,666407,690384,697389,677818,695705,693807,668143,691745,701068,666863,687718,695694,698306,695779,701966,659687,700931,700969,700374,698590,702064,685914,667498,670324,696962,665446,694359,683454,702233,665311,694113,701080,661223,664691,689471,666262,671416,664217,666366,692349,686101,701723,699039,677401,695770,688432,646546,685872,628531,702420,694128,652742,668696,664334,698901,695685,653909,694146,701619,646714,685666,663632,668574,698913,683441,661767,697052,681563,692183,685024,700308,646911,671603,697849,687471,701396,698260,659806,666402,695007,668640,692745,698226,672905,687519,702052,702137,701199,698232,689423,701625,665407,692221,662288,670561,668010,642991,664343,688953,665966,692483,691765,663694,691400,661797,672644,691203,689147,680733,687830,682917,669820,700955,691878,693099,696620,694453,693602,702389,701667,668150,681692,13047,674455,685748,682361,693159,667488,695334,15747,688008,694768,702408,680876,701758,668572,697069,681493,668937,702415,702426,686450,700317,694264,669072,668677,674636,701710,666494,670608,656072,662732,686540,662991,662137,668096,694141,660002,677976,697406,675446,667516,665880,700465,668593,692168,663531,678227,667610,690385,662283,674388,687202,671704,686005,671531,668705,670165,667595,666980,674699,671764,668607,671545,690003,688363,678124,692189,664320)
+order by field(bpr.id, 660232,676963,684816,667507,702421,669877,701652,668932,666109,700152,692623,673173,665290,698424,694563,702424,702422,699114,668975,702429,694012,701712,674619,700369,671750,694011,689330,668552,699055,683674,682453,702439,701637,689916,695074,695049,688314,701297,697970,695343,687880,695060,673237,698370,691294,669010,681626,612164,678026,670059,618451,682065,671592,699770,688361,699755,681211,694851,674269,701660,699990,673957,667192,660199,682020,671761,641846,684366,698560,667929,696719,676269,691446,668582,690287,670287,668663,701676,666498,701503,661061,697119,701685,685352,668692,666437,673047,701674,700791,700789,669728,667060,684350,660692,695027,700956,698977,702001,701663,696754,700176,670306,698300,696173,702048,702017,699953,696647,699703,699913,676612,700542,698538,671713,692850,696929,689005,702150,701770,584252,696414,700758,665351,701356,698898,674754,664918,690018,700043,654141,696285,624539,664579,694592,689379,668442,688140,700507,663496,685050,695644,702154,700952,679034,671639,695423,702425,667030,700927,665868,700608,702085,701887,701684,670818,700511,654698,694430,702105,665492,700217,667204,702147,692701,666951,684510,648619,670014,699426,642494,702097,701197,700250,692926,664164,683082,662074,690388,695602,702094,672574,680164,693196,702110,700284,691453,665909,678241,664866,691536,695484,691508,697005,676078,684185,701049,672889,696640,691501,695038,676270,677904,671440,685572,680962,691835,698194,700386,700382,702014,696179,700120,702006,701435,682510,698520,701020,668538,694150,702004,671327,701023,670293,691772,700158,666407,690384,697389,677818,695705,693807,668143,691745,701068,666863,687718,695694,698306,695779,701966,659687,700931,700969,700374,698590,702064,685914,667498,670324,696962,665446,694359,683454,702233,665311,694113,701080,661223,664691,689471,666262,671416,664217,666366,692349,686101,701723,699039,677401,695770,688432,646546,685872,628531,702420,694128,652742,668696,664334,698901,695685,653909,694146,701619,646714,685666,663632,668574,698913,683441,661767,697052,681563,692183,685024,700308,646911,671603,697849,687471,701396,698260,659806,666402,695007,668640,692745,698226,672905,687519,702052,702137,701199,698232,689423,701625,665407,692221,662288,670561,668010,642991,664343,688953,665966,692483,691765,663694,691400,661797,672644,691203,689147,680733,687830,682917,669820,700955,691878,693099,696620,694453,693602,702389,701667,668150,681692,13047,674455,685748,682361,693159,667488,695334,15747,688008,694768,702408,680876,701758,668572,697069,681493,668937,702415,702426,686450,700317,694264,669072,668677,674636,701710,666494,670608,656072,662732,686540,662991,662137,668096,694141,660002,677976,697406,675446,667516,665880,700465,668593,692168,663531,678227,667610,690385,662283,674388,687202,671704,686005,671531,668705,670165,667595,666980,674699,671764,668607,671545,690003,688363,678124,692189,664320)
+
+
 
 -- for Fong
 select bpr.date_report, sme.`g-dept`, sme.dept, sme.sec_branch , sme.unit_no, sme.unit, bpr.staff_no , sme.staff_name, bpr.`case`, bpr.`type` , bpr.usd_loan_amount, bpr.case_no, bpr.contract_no, bp.customer_name, bp.customer_tel, bpr.rank_update, bpr.now_result ,
@@ -189,7 +197,7 @@ select * from tabSME_BO_and_Plan where callcenter_of_sales like '4297%' and crea
 -- xyz to import to tabsme_Sales_partner
 insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
 	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
-;select bp.staff_no `current_staff`, case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff2` , 
+select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
 	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
 	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
 	bp.creation, bp.modified, bp.owner
@@ -197,49 +205,50 @@ from tabSME_BO_and_Plan bp left join sme_org sme on (bp.staff_no = sme.staff_no)
 left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
 where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
 	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
+	
 
 -- to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
-alter table tabsme_Sales_partner auto_increment= 451388 ; -- next id
+alter table tabsme_Sales_partner auto_increment= 551599 ; -- next id
 insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
 from sme_bo_and_plan_id_seq;
 
 
--- export to check pbx XYZ
-select sp.name `id`, sp.broker_tel, null `pbx_status`, null `date`, sp.current_staff
-from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-inner join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'tabSME_BO_and_Plan' and sme.`unit_no` is not null -- if resigned staff no need
-order by sme.id ;
+-- export XYZ for Credit team
+select 
+	case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
+	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
+	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
+	bp.creation, bp.modified, bp.owner
+from tabSME_BO_and_Plan bp left join sme_org sme on (bp.staff_no = sme.staff_no)
+left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
+where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
+	-- and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
+	and date_format(bp.creation, '%Y-%m-%d') = '2024-07-27'
+
+
+select * from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
+	and  ; 
+
 
 select COUNT(*) 
 from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
 left join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'tabSME_BO_and_Plan' -- and sme.`unit_no` is not null -- if resigned staff no need
+where sp.refer_type = 'tabSME_BO_and_Plan' and sme.`unit_no` is not null -- if resigned staff no need --
+      -- and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ' and sp.`rank` != 'Not interest - ບໍ່ສົນໃຈ ເປັນນາຍໜ້າ' 
 order by sme.id ;
-
-
-select count(*) from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
-where rank_update = 'G' and sme.`unit_no` is not null ;
-
-select COUNT(*) 
-from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-left join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'tabSME_BO_and_Plan' -- and sme.`unit_no` is not null -- if resigned staff no need
-order by sme.id ;
-
-
 
 -- ---------------------------------- update sales partner type ----------------------------------
 select refer_type, broker_type, count(*) from tabsme_Sales_partner group by refer_type, broker_type ;
-update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null;
+update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null or refer_type = '5way';
+update tabsme_Sales_partner set broker_type = 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ' where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'); 
 select distinct refer_type, broker_type from tabsme_Sales_partner ;
+
 
 select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
 
-select modified, date_format(modified, '%Y-%m-%d'), wa_date  from tabsme_Sales_partner where send_wa != '' and wa_date >= '2024-06-01'
 
 
 
@@ -273,7 +282,7 @@ select name, customer_tel, custtbl_id from tabSME_BO_and_Plan tsbap where name >
 
 -- to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabSME_BO_and_Plan;
-alter table tabSME_BO_and_Plan auto_increment= 576771 ; -- next id
+alter table tabSME_BO_and_Plan auto_increment= 699110 ; -- next id
 insert into sme_bo_and_plan_id_seq select (select max(name)+1 `next_not_cached_value` from tabSME_BO_and_Plan), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
 from sme_bo_and_plan_id_seq;
 
@@ -480,6 +489,8 @@ update tabUser set enabled = 0 where username in ('1186', '3851');
 select * from tabUser where name = 'test1@lalco.la';
 select * from user
 
+select staff_no, main_contact  from tabsme_Employees te 
+
 -- export HR system
 select ha.name, date_format(ha.creation, '%Y-%m-%d') `date created`, date_format(ha.modified, '%Y-%m-%d') `date updated`,
 	ha.office, ha.branch, ha.department, ha.head_of_department, ha.staff_no, 
@@ -651,8 +662,31 @@ from tabsme_Sales_partner tsp where refer_type = 'LMS_Broker'
 
 
 
-select 
-from tabSME_BO_and_Plan tsbap where staff_no = '4008 - PHOUVIENG' and creation >= '2024-07-12'
+
+-- SME_SP
+select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
+	sp.broker_type, sp.broker_name, sp.address_province_and_city, sp.`rank`, sp.date_for_introduction, sp.customer_name, concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
+	case when sp.owner_staff = sp.current_staff then '1' else 0 end `owner_takeover`,
+	sp.broker_tel, sp.credit, sp.rank_of_credit, sp.credit_remark, ts.pbx_status `LCC check`, 
+	case when sp.modified < date(now()) then '-' else left(sp.`rank`, locate(' ',sp.`rank`)-1) end `rank of call today`,
+	sp.business_type, 
+	(case when sp.currency = 'USD' then 1 when sp.currency = 'THB' then 1/35.10 when sp.currency = 'LAK' then 1/23480.00 end) * sp.amount `USD_amount`,
+	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'will introduce' else 'no' end `introduce status`,
+	sp.send_wa, sp.wa_date, sp.wa_evidence,
+	case when sp.modified >= '2024-07-15'  then 'called' else 'x' end `call_ status`,
+	sp.refer_id, refer_type
+from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+left join temp_sme_pbx_SP ts on (ts.id = sp.name)
+where sp.refer_type = 'LMS_Broker' 
+order by sme.id ;
+
+
+select name, current_staff, owner_staff  from tabsme_Sales_partner sp 
+where sp.refer_type = 'LMS_Broker' ;
+
+
+
+
 
 
 
