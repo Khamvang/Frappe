@@ -13,6 +13,6 @@ select name 'id', customer_tel 'contact_no', customer_name 'name',
 	maker, model, `year`, rank_update 'remark_1', null 'remark_2', null 'remark_3'
 from tabSME_BO_and_Plan 
 where contract_status != 'Contracted'
-	and right(address_province_and_city, (length(address_province_and_city) - locate('- ', address_province_and_city) -1 ) ) in ('Saysetha','Khamkeut','Paksong','Phonthong','Nam Bak','Songkhone','Hadxayfong','Naxaythong','Parkngum','Xaythany','Vangvieng','Parklai','Kham'
+	and address_province_and_city in ('Attapeu - Saysetha','Borikhamxay - Khamkeut','Champasack - Paksong','Champasack - Phonthong','Luangprabang - Nam Bak','Savanakhet - Songkhone','Vientiane Capital - Hadxayfong','Vientiane Capital - Naxaythong','Vientiane Capital - Parkngum','Vientiane Capital - Xaythany','Vientiane Province - Vangvieng','Xayaboury - Parklai','Xiengkhuang - Kham'
 )
 order by address_province_and_city asc;
