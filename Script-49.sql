@@ -140,6 +140,19 @@ where bpr.which = 'ແຜນເພີ່ມ' and bpr.staff_no is not null -- and
 order by sme.id asc ;
 
 
+-- auto sync to google sheet https://docs.google.com/spreadsheets/d/1Te5-HcXAG8p8nDBrHFiZyEcqPzP4Qqf4OBqA1YloRRg/edit?gid=1913257518#gid=1913257518
+select sme.id, sme.`g-dept`, sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.mini_unit, sme.staff_name,
+	bpr.staff_no, bpr.case, bpr.`type`, bpr.usd_loan_amount, bpr.case_no, bpr.contract_no, bpr.customer_name, bpr.rank_update, bpr.now_result, 
+	bpr.disbursement_date_pay_date, bpr.which, bpr.id, bpr.comments, 
+	case when bp.modified >= date(now()) then 'called' else 0 end `is_call_today`,
+	bpr.date_report, bp.customer_name,
+	case when bpr.now_result = 'Contracted' and bpr.disbursement_date_pay_date = date(now()) then 'Daily report' 
+from SME_BO_and_Plan_report bpr left join tabSME_BO_and_Plan bp on (bpr.id = bp.name)
+left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where bpr.which = 'ແຜນເພີ່ມ' and bpr.staff_no is not null -- and bpr.now_result = 'Contracted' and bpr.disbursement_date_pay_date is null
+order by sme.id asc ;
+
+
 -- manual 
 select bpr.* , case when bp.modified >= date(now()) then 'called' else 0 end `is_call_today`, sme.id 
 from SME_BO_and_Plan_report bpr left join tabSME_BO_and_Plan bp on (bpr.id = bp.name)
@@ -201,7 +214,7 @@ select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales 
 	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
 	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
 	bp.creation, bp.modified, bp.owner
-from tabSME_BO_and_Plan bp left join sme_org sme on (bp.staff_no = sme.staff_no)
+from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
 left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
 where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
 	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
@@ -209,7 +222,7 @@ where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົ�
 
 -- to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
-alter table tabsme_Sales_partner auto_increment= 551599 ; -- next id
+alter table tabsme_Sales_partner auto_increment= 552126 ; -- next id
 insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
 from sme_bo_and_plan_id_seq;
 
@@ -220,23 +233,14 @@ select
 	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
 	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
 	bp.creation, bp.modified, bp.owner
-from tabSME_BO_and_Plan bp left join sme_org sme on (bp.staff_no = sme.staff_no)
+from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
 left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
 where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
 	-- and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
 	and date_format(bp.creation, '%Y-%m-%d') = '2024-07-27'
 
 
-select * from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
-	and  ; 
 
-
-select COUNT(*) 
-from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-left join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'tabSME_BO_and_Plan' and sme.`unit_no` is not null -- if resigned staff no need --
-      -- and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ' and sp.`rank` != 'Not interest - ບໍ່ສົນໃຈ ເປັນນາຍໜ້າ' 
-order by sme.id ;
 
 -- ---------------------------------- update sales partner type ----------------------------------
 select refer_type, broker_type, count(*) from tabsme_Sales_partner group by refer_type, broker_type ;
@@ -474,9 +478,37 @@ left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]
 where bp.rank1 in ('S', 'A', 'B', 'C', 'F') ;
 
 
-select rank_update, COUNT(*) 
-from tabSME_BO_and_Plan bp 
-group by rank_update;
+select rank_update, COUNT(*) from tabSME_BO_and_Plan bp group by rank_update;
+
+select address_province_and_city,
+	count(case when contract_status = 'Contracted' then 1 end ) 'Contracted',
+	count(case when contract_status != 'Contracted' and rank_update in ('S', 'A', 'B', 'C') then 1 end ) 'SABC',
+	count(case when contract_status != 'Contracted' and rank_update in ('F', 'FF1', 'FF2', 'FFF') then 1 end ) 'F',
+	count(case when contract_status != 'Contracted' and rank_update in ('G') then 1 end ) 'G'
+from tabSME_BO_and_Plan bp group by address_province_and_city;
+
+select address_province_and_city, contract_status, rank_update, count(*)
+from tabSME_BO_and_Plan bp group by address_province_and_city, contract_status, rank_update;
+
+
+-- prepare list for new 13 branches
+select name 'id', customer_tel 'contact_no', customer_name 'name', 
+	left(address_province_and_city, locate(' -', address_province_and_city)-1) 'province_eng', null 'province_laos',
+	right(address_province_and_city, (length(address_province_and_city) - locate('- ', address_province_and_city) -1 ) ) 'district_eng', null 'district_laos',
+	address_village 'village', 
+	case when contract_status = 'Contracted' then 'Contracted'
+		when contract_status != 'Contracted' and rank_update in ('S', 'A', 'B', 'C') then 'SABC'
+		when contract_status != 'Contracted' and rank_update in ('F', 'FF1', 'FF2', 'FFF') then 'F'
+		when contract_status != 'Contracted' and rank_update in ('G') then 'G'
+	end 'type', 
+	maker, model, `year`, rank_update 'remark_1', null 'remark_2', null 'remark_3'
+from tabSME_BO_and_Plan 
+where contract_status != 'Contracted'
+	and address_province_and_city in ('Attapeu - Saysetha','Borikhamxay - Khamkeut','Champasack - Paksong','Champasack - Phonthong','Luangprabang - Nam Bak','Savanakhet - Songkhone','Vientiane Capital - Hadxayfong','Vientiane Capital - Naxaythong','Vientiane Capital - Parkngum','Vientiane Capital - Xaythany','Vientiane Province - Vangvieng','Xayaboury - Parklai','Xiengkhuang - Kham'
+)
+order by address_province_and_city asc;
+
+
 
 
 -- Users Email management  https://docs.google.com/spreadsheets/d/1y_aoS_10n_FAqgWbbaURD9D79WN--wgR5Ih3QwLWTag/edit#gid=659979462
