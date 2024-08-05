@@ -29,10 +29,10 @@ select name 'id', customer_tel 'contact_no', customer_name 'name',
 		when contract_status != 'Contracted' and rank_update in ('F', 'FF1', 'FF2', 'FFF') then 'F'
 		when contract_status != 'Contracted' and rank_update in ('G') then 'G'
 	end 'type', 
-	maker, model, `year`, rank_update 'remark_1', null 'remark_2', null 'remark_3'
+	maker, model, `year`, rank_update 'remark_1', usd_loan_amount 'remark_2', null 'remark_3'
 from tabSME_BO_and_Plan 
 where contract_status != 'Contracted'
-	and address_province_and_city in ('Attapeu - Samakkhixay','Bokeo - Houay Xay','Borikhamxay - Paksane','Champasack - Pak Se','Huaphanh - Xam Neua','Khammuane - Thakhek','Luangnamtha - Namtha','Luangprabang - Luang Prabang','Oudomxay - Xay','Phongsaly - Boun Neua','Saravane - Saravanh','Savanakhet - Kaysone Phomvihane','Vientiane Capital - Sisattanak','Vientiane Province - phonhong','Xayaboury - Xaiyabuly','Xaysomboune - Anouvong','Sekong - La Man','Xiengkhuang - Paek'
+	and address_province_and_city in ('Attapeu - Samakkhixay','Bokeo - Houay Xay','Borikhamxay - Paksane','Champasack - Pak Se','Huaphanh - Xam Neua','Khammuane - Thakhek','Luangnamtha - Namtha','Luangprabang - Luang Prabang','Oudomxay - Xay','Phongsaly - Boun Neua','Saravane - Saravanh','Savanakhet - Kaysone Phomvihane','Vientiane Capital - Sisattanak','Vientiane Province - phonhong','Xayaboury - Xaiyabuly','Xaysomboune - Anouvong','Sekong - La Mam','Xiengkhuang - Paek'
 )
 order by address_province_and_city asc;
 
