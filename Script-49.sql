@@ -220,24 +220,25 @@ where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົ�
 	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
 	
 
--- to make your form can add new record after you import data from tabSME_BO_and_Plan
+-- 1st method: to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
-alter table tabsme_Sales_partner auto_increment= 552126 ; -- next id
+alter table tabsme_Sales_partner auto_increment= 553306 ; -- next id
 insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
 from sme_bo_and_plan_id_seq;
 
+-- 2nd method: 
+-- Step 1: Get the next AUTO_INCREMENT value
+SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
--- export XYZ for Credit team
-select 
-	case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
-	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
-	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
-	bp.creation, bp.modified, bp.owner
-from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
-left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
-where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
-	-- and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
-	and date_format(bp.creation, '%Y-%m-%d') = '2024-07-27'
+-- Step 2: Construct the ALTER TABLE query
+SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+
+-- Step 3: Prepare and execute the query
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 
 
@@ -251,7 +252,7 @@ select distinct refer_type, broker_type from tabsme_Sales_partner ;
 
 select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
-update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
+update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-08-01' ;
 
 
 
@@ -491,7 +492,7 @@ select address_province_and_city, contract_status, rank_update, count(*)
 from tabSME_BO_and_Plan bp group by address_province_and_city, contract_status, rank_update;
 
 
--- prepare list for new 13 branches
+-- prepare list for current 18 branches
 select name 'id', customer_tel 'contact_no', customer_name 'name', 
 	left(address_province_and_city, locate(' -', address_province_and_city)-1) 'province_eng', null 'province_laos',
 	right(address_province_and_city, (length(address_province_and_city) - locate('- ', address_province_and_city) -1 ) ) 'district_eng', null 'district_laos',
@@ -501,12 +502,12 @@ select name 'id', customer_tel 'contact_no', customer_name 'name',
 		when contract_status != 'Contracted' and rank_update in ('F', 'FF1', 'FF2', 'FFF') then 'F'
 		when contract_status != 'Contracted' and rank_update in ('G') then 'G'
 	end 'type', 
-	maker, model, `year`, rank_update 'remark_1', null 'remark_2', null 'remark_3'
+	maker, model, `year`, rank_update 'remark_1', usd_loan_amount 'remark_2', null 'remark_3'
 from tabSME_BO_and_Plan 
 where contract_status != 'Contracted'
-	and address_province_and_city in ('Attapeu - Saysetha','Borikhamxay - Khamkeut','Champasack - Paksong','Champasack - Phonthong','Luangprabang - Nam Bak','Savanakhet - Songkhone','Vientiane Capital - Hadxayfong','Vientiane Capital - Naxaythong','Vientiane Capital - Parkngum','Vientiane Capital - Xaythany','Vientiane Province - Vangvieng','Xayaboury - Parklai','Xiengkhuang - Kham'
-)
+	and address_province_and_city in ('Sekong - La Mam')
 order by address_province_and_city asc;
+
 
 
 
@@ -695,28 +696,9 @@ from tabsme_Sales_partner tsp where refer_type = 'LMS_Broker'
 
 
 
--- SME_SP
-select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
-	sp.broker_type, sp.broker_name, sp.address_province_and_city, sp.`rank`, sp.date_for_introduction, sp.customer_name, concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
-	case when sp.owner_staff = sp.current_staff then '1' else 0 end `owner_takeover`,
-	sp.broker_tel, sp.credit, sp.rank_of_credit, sp.credit_remark, ts.pbx_status `LCC check`, 
-	case when sp.modified < date(now()) then '-' else left(sp.`rank`, locate(' ',sp.`rank`)-1) end `rank of call today`,
-	sp.business_type, 
-	(case when sp.currency = 'USD' then 1 when sp.currency = 'THB' then 1/35.10 when sp.currency = 'LAK' then 1/23480.00 end) * sp.amount `USD_amount`,
-	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'will introduce' else 'no' end `introduce status`,
-	sp.send_wa, sp.wa_date, sp.wa_evidence,
-	case when sp.modified >= '2024-07-15'  then 'called' else 'x' end `call_ status`,
-	sp.refer_id, refer_type
-from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-left join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'LMS_Broker' 
-order by sme.id ;
+select * from tabSME_Approach_list 
 
-
-select name, current_staff, owner_staff  from tabsme_Sales_partner sp 
-where sp.refer_type = 'LMS_Broker' ;
-
-
+alter table tabSME_Approach_list add 
 
 
 
