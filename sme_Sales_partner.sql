@@ -161,10 +161,50 @@ where c.status in (4,6,7) and p.broker_id <> 0
 order by c.contract_no desc;
 
 
--- ---------------------------------- update type ----------------------------------
+
+-- xyz to import to tabsme_Sales_partner
+insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
+	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
+select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
+	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
+	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
+	bp.creation, bp.modified, bp.owner
+from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
+where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
+	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
+	
+
+-- 1st method: to make your form can add new record after you import data from tabSME_BO_and_Plan
+select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
+alter table tabsme_Sales_partner auto_increment= 553306 ; -- next id
+insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
+from sme_bo_and_plan_id_seq;
+
+-- 2nd method: 
+-- Step 1: Get the next AUTO_INCREMENT value
+SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+
+-- Step 2: Construct the ALTER TABLE query
+SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+
+-- Step 3: Prepare and execute the query
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+-- ---------------------------------- update sales partner type ----------------------------------
 select refer_type, broker_type, count(*) from tabsme_Sales_partner group by refer_type, broker_type ;
-update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null;
+update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null or refer_type = '5way';
+update tabsme_Sales_partner set broker_type = 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ' where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'); 
 select distinct refer_type, broker_type from tabsme_Sales_partner ;
+
+
+select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
+update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
+update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
+
 
 
 -- ---------------------------------- delete deplicate -----------------------------------
