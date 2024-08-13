@@ -28,8 +28,8 @@ select `creation`, `modified`, `modified_by`, `owner`, `docstatus`, `idx`, `staf
 	`usd_value_of_real_estate`, `have_or_not`, `from_whom`, `date`, `usd_value_of_receivable`, `remark`, `sp_cc`, `rank_update_sp_cc`, `sp_cc_remark`, 
 	`credit`, `rank_of_credit`, `reason_of_credit`, `credit_remark`, `visit_checker`, `actual_visit_or_not`, `comment_by_visit_checker`, `_user_tags`, 
 	`_comments`, `_assign`, `_liked_by`, null `priority`, nb.`branch_name`, nb.`approach_type`, nb.approach_id 
-from tabSME_BO_and_Plan bp left join sme_new_branch nb on (bp.name = nb.approach_id)
-where bp.name in (select approach_id from sme_new_branch );
+from tabSME_BO_and_Plan bp inner join sme_new_branch nb on (bp.name = nb.approach_id)
+
 
 
 
