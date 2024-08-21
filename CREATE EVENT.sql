@@ -1,4 +1,10 @@
 
+-- Show events
+SHOW EVENTS;
+
+-- delete events
+DROP EVENT construct_query;
+
 
 
 -- 1) Event to Insert Data
