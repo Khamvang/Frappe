@@ -96,6 +96,16 @@ DO
     DEALLOCATE PREPARE stmt;
 
 
+-- __________________________________________________________ If want to show and drop the events __________________________________________________________
+
+SHOW EVENTS;
+
+DROP EVENT IF EXISTS construct_query;
+DROP EVENT IF EXISTS deallocate_prepare_stmt;
+DROP EVENT IF EXISTS execute_stmt;
+DROP EVENT IF EXISTS prepare_stmt;
+DROP EVENT IF EXISTS set_next_id;
+DROP EVENT IF EXISTS update_and_insert_sales_partner;
 
 
 
