@@ -6,14 +6,13 @@ CREATE EVENT IF NOT EXISTS update_and_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:00:00'
 DO
-    -- Insert new records into tabsme_Sales_partner
     INSERT INTO tabsme_Sales_partner (
         `current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`,
         `address_province_and_city`, `address_village`, `business_type`, `year`, `refer_id`,
         `refer_type`, `creation`, `modified`, `owner`
     )
     SELECT 
-        CASE WHEN bp.callcenter_of_sales IS NOT NULL THEN bp.staff_no ELSE bp.staff_no END AS `current_staff`,
+        CASE WHEN bp.callcenter_of_sales IS NOT NULL THEN bp.callcenter_of_sales ELSE bp.staff_no END AS `current_staff`,
         bp.own_salesperson AS `owner_staff`,
         bp.is_sales_partner AS `broker_type`,
         bp.customer_name AS `broker_name`,
@@ -45,6 +44,7 @@ DO
     AND bp.name NOT IN (
         SELECT refer_id FROM tabsme_Sales_partner WHERE refer_type = 'tabSME_BO_and_Plan'
     );
+
 
 
 -- 2) Get the next AUTO_INCREMENT value
