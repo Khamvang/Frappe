@@ -1,0 +1,92 @@
+
+
+
+-- 1) Create event for auto run update and insert the sales partner
+CREATE EVENT IF NOT EXISTS update_and_insert_sales_partner
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:00:00'
+DO
+    -- Insert new records into tabsme_Sales_partner
+    INSERT INTO tabsme_Sales_partner (
+        `current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`,
+        `address_province_and_city`, `address_village`, `business_type`, `year`, `refer_id`,
+        `refer_type`, `creation`, `modified`, `owner`
+    )
+    SELECT 
+        CASE WHEN bp.callcenter_of_sales IS NOT NULL THEN bp.staff_no ELSE bp.staff_no END AS `current_staff`,
+        bp.own_salesperson AS `owner_staff`,
+        bp.is_sales_partner AS `broker_type`,
+        bp.customer_name AS `broker_name`,
+        bp.customer_tel AS `broker_tel`,
+        bp.address_province_and_city,
+        bp.address_village,
+        bp.business_type,
+        bp.`year`,
+        bp.name AS `refer_id`,
+        'tabSME_BO_and_Plan' AS `refer_type`,
+        bp.creation,
+        bp.modified,
+        bp.owner
+    FROM tabSME_BO_and_Plan bp
+    LEFT JOIN sme_org sme ON (
+        CASE 
+            WHEN LOCATE(' ', bp.staff_no) = 0 THEN bp.staff_no 
+            ELSE LEFT(bp.staff_no, LOCATE(' ', bp.staff_no) - 1) 
+        END = sme.staff_no
+    )
+    LEFT JOIN sme_org smec ON (
+        REGEXP_REPLACE(bp.callcenter_of_sales, '[^[:digit:]]', '') = smec.staff_no
+    )
+    WHERE bp.is_sales_partner IN (
+        'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 
+        'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 
+        'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'
+    )
+    AND bp.name NOT IN (
+        SELECT refer_id FROM tabsme_Sales_partner WHERE refer_type = 'tabSME_BO_and_Plan'
+    );
+
+
+-- 2) Get the next AUTO_INCREMENT value
+CREATE EVENT IF NOT EXISTS set_next_id
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:00'
+DO
+SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+
+
+-- 3) Construct the ALTER TABLE query
+CREATE EVENT IF NOT EXISTS construct_query
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:05' 
+DO
+SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+
+
+-- 4.1) Prepare and execute the query
+CREATE EVENT IF NOT EXISTS prepare_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:00'  
+DO
+PREPARE stmt FROM @query;
+
+
+-- 4.2) Prepare and execute the query
+CREATE EVENT IF NOT EXISTS execute_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:05'  -- 5 second after the previous event
+DO
+EXECUTE stmt;
+
+
+-- 4.3) Prepare and execute the query
+CREATE EVENT IF NOT EXISTS deallocate_prepare_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:10'  -- 5 second after the previous event
+DO
+DEALLOCATE PREPARE stmt;
+
+
+
+
+
