@@ -1,7 +1,7 @@
 
 
 
--- 1) Create event for auto run update and insert the sales partner
+-- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS update_and_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:00:00'
@@ -47,44 +47,48 @@ DO
 
 
 
--- 2) Get the next AUTO_INCREMENT value
+-- 2) Event to Set Next AUTO_INCREMENT Value
 CREATE EVENT IF NOT EXISTS set_next_id
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:00'
 DO
-SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+    SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
 
--- 3) Construct the ALTER TABLE query
+-- 3) Event to Construct the ALTER TABLE Query
 CREATE EVENT IF NOT EXISTS construct_query
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:05' 
 DO
-SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+    SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
 
 
--- 4.1) Prepare and execute the query
+
+-- 4) Event to Prepare the Statement
 CREATE EVENT IF NOT EXISTS prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:00'  
+STARTS '2024-08-22 01:02:10'  
 DO
-PREPARE stmt FROM @query;
+    PREPARE stmt FROM @query;
 
 
--- 4.2) Prepare and execute the query
+
+-- 5) Event to Execute the Statement
 CREATE EVENT IF NOT EXISTS execute_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:05'  -- 5 second after the previous event
+STARTS '2024-08-22 01:02:15'  -- 5 seconds after the previous event
 DO
-EXECUTE stmt;
+    EXECUTE stmt;
 
 
--- 4.3) Prepare and execute the query
+
+-- 6) Event to Deallocate the Statement
 CREATE EVENT IF NOT EXISTS deallocate_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:10'  -- 5 second after the previous event
+STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
 DO
-DEALLOCATE PREPARE stmt;
+    DEALLOCATE PREPARE stmt;
+
 
 
 
