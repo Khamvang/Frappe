@@ -142,3 +142,69 @@ from sme_bo_and_plan_id_seq;
 ----------------------------------------------------------------------+-------------+-------------------+-----------+---------+----------+------------+-----------+
                                                                 556395|            1|9223372036854775806|          1|        1|         0|           0|          0|
 
+
+
+-- ____________________________________________________________ 
+
+https://chatgpt.com/c/c5d8667e-5834-4f4e-a171-9debc9cf27bd
+
+-- Request:
+        Please help me to modified, and each event, I want to set the time, from event name update_and_insert_sales_partner to event name set_next_id set 1 minute later then other remaining set 5 second later
+        
+        -- Modify an Event:
+        ALTER EVENT 'Event Name'
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:00:00'; 
+        
+        For the even name below here
+        
+        update_and_insert_sales_partner
+        set_next_id
+        construct_query
+        prepare_stmt
+        execute_stmt
+        deallocate_prepare_stmt
+
+
+-- Result:
+        -- Modify the event update_and_insert_sales_partner
+        ALTER EVENT update_and_insert_sales_partner
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:00:00';
+        
+        -- Modify the event set_next_id (1 minute after update_and_insert_sales_partner)
+        ALTER EVENT set_next_id
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:01:00';
+        
+        -- Modify the event construct_query (5 seconds after set_next_id)
+        ALTER EVENT construct_query
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:01:05';
+        
+        -- Modify the event prepare_stmt (5 seconds after construct_query)
+        ALTER EVENT prepare_stmt
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:01:10';
+        
+        -- Modify the event execute_stmt (5 seconds after prepare_stmt)
+        ALTER EVENT execute_stmt
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:01:15';
+        
+        -- Modify the event deallocate_prepare_stmt (5 seconds after execute_stmt)
+        ALTER EVENT deallocate_prepare_stmt
+        ON SCHEDULE EVERY 1 DAY
+        STARTS '2024-08-22 13:01:20';
+
+
+
+
+
+
+
+
+
+
+
+
