@@ -1,12 +1,30 @@
 
+-- Create events
+CREATE EVENT IF NOT EXISTS 'Event Name'
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
+DO
+    'Your Query';
+
 -- Show events
+-- To list all events in your database, you can run:
 SHOW EVENTS;
+-- To see detailed information about a specific event:
+SHOW CREATE EVENT 'Event Name';
+
+
+-- Modify an Event:
+ALTER EVENT 'Event Name'
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-23 00:00:00';
+
 
 -- delete events
 DROP EVENT construct_query;
 
 
 
+------------------------------------------------------------------------------------------------------------------------
 -- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS update_and_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
