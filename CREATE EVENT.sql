@@ -132,7 +132,7 @@ select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
 
 next_not_cached_value|
 ---------------------+
-               556136|
+               556395|
 
 
 select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
@@ -140,5 +140,5 @@ from sme_bo_and_plan_id_seq;
 
 (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner)|minimum_value|maximum_value      |start_value|increment|cache_size|cycle_option|cycle_count|
 ----------------------------------------------------------------------+-------------+-------------------+-----------+---------+----------+------------+-----------+
-                                                                556136|            1|9223372036854775806|          1|        1|         0|           0|          0|
+                                                                556395|            1|9223372036854775806|          1|        1|         0|           0|          0|
 
