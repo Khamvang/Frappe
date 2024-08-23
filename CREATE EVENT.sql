@@ -4,7 +4,7 @@ CREATE EVENT IF NOT EXISTS 'Event Name'
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
 DO
-    'Your Query';
+    'insert logic here';
 
 -- Show events
 -- To list all events in your database, you can run:
@@ -19,68 +19,41 @@ ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-23 00:00:00';
 
 
--- delete events
+-- Delete or Drop the events
 DROP EVENT construct_query;
 
 
 
 ------------------------------------------------------------------------------------------------------------------------
 -- 1) Event to Insert Data
-CREATE EVENT IF NOT EXISTS update_and_insert_sales_partner
+CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:00:00'
 DO
-    INSERT INTO tabsme_Sales_partner (
-        `current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`,
-        `address_province_and_city`, `address_village`, `business_type`, `year`, `refer_id`,
-        `refer_type`, `creation`, `modified`, `owner`
-    )
-    SELECT 
-        CASE WHEN bp.callcenter_of_sales IS NOT NULL THEN bp.callcenter_of_sales ELSE bp.staff_no END AS `current_staff`,
-        bp.own_salesperson AS `owner_staff`,
-        bp.is_sales_partner AS `broker_type`,
-        bp.customer_name AS `broker_name`,
-        bp.customer_tel AS `broker_tel`,
-        bp.address_province_and_city,
-        bp.address_village,
-        bp.business_type,
-        bp.`year`,
-        bp.name AS `refer_id`,
-        'tabSME_BO_and_Plan' AS `refer_type`,
-        bp.creation,
-        bp.modified,
-        bp.owner
-    FROM tabSME_BO_and_Plan bp
-    LEFT JOIN sme_org sme ON (
-        CASE 
-            WHEN LOCATE(' ', bp.staff_no) = 0 THEN bp.staff_no 
-            ELSE LEFT(bp.staff_no, LOCATE(' ', bp.staff_no) - 1) 
-        END = sme.staff_no
-    )
-    LEFT JOIN sme_org smec ON (
-        REGEXP_REPLACE(bp.callcenter_of_sales, '[^[:digit:]]', '') = smec.staff_no
-    )
-    WHERE bp.is_sales_partner IN (
-        'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 
-        'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 
-        'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'
-    )
-    AND bp.name NOT IN (
-        SELECT refer_id FROM tabsme_Sales_partner WHERE refer_type = 'tabSME_BO_and_Plan'
-    );
+    insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
+    	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
+    select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
+    	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
+    	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
+    	bp.creation, bp.modified, bp.owner
+    from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+    left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
+    where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
+    	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
 
 
 
 -- 2) Event to Set Next AUTO_INCREMENT Value
-CREATE EVENT IF NOT EXISTS set_next_id
+CREATE EVENT IF NOT EXISTS xyz_set_next_id
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:00'
 DO
     SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
 
+
 -- 3) Event to Construct the ALTER TABLE Query
-CREATE EVENT IF NOT EXISTS construct_query
+CREATE EVENT IF NOT EXISTS xyz_construct_query
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:05' 
 DO
@@ -89,7 +62,7 @@ DO
 
 
 -- 4) Event to Prepare the Statement
-CREATE EVENT IF NOT EXISTS prepare_stmt
+CREATE EVENT IF NOT EXISTS xyz_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:10'  
 DO
@@ -98,7 +71,7 @@ DO
 
 
 -- 5) Event to Execute the Statement
-CREATE EVENT IF NOT EXISTS execute_stmt
+CREATE EVENT IF NOT EXISTS xyz_execute_stmt
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:15'  -- 5 seconds after the previous event
 DO
@@ -107,7 +80,7 @@ DO
 
 
 -- 6) Event to Deallocate the Statement
-CREATE EVENT IF NOT EXISTS deallocate_prepare_stmt
+CREATE EVENT IF NOT EXISTS xyz_deallocate_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
 DO
@@ -118,12 +91,12 @@ DO
 
 SHOW EVENTS;
 
-DROP EVENT IF EXISTS construct_query;
-DROP EVENT IF EXISTS deallocate_prepare_stmt;
-DROP EVENT IF EXISTS execute_stmt;
-DROP EVENT IF EXISTS prepare_stmt;
-DROP EVENT IF EXISTS set_next_id;
 DROP EVENT IF EXISTS update_and_insert_sales_partner;
+DROP EVENT IF EXISTS set_next_id;
+DROP EVENT IF EXISTS construct_query;
+DROP EVENT IF EXISTS prepare_stmt;
+DROP EVENT IF EXISTS execute_stmt;
+DROP EVENT IF EXISTS deallocate_prepare_stmt;
 
 
 
