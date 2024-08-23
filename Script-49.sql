@@ -210,7 +210,7 @@ select * from tabSME_BO_and_Plan where callcenter_of_sales like '4297%' and crea
 -- xyz to import to tabsme_Sales_partner
 insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
 	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
-;select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
+select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
 	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
 	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
 	bp.creation, bp.modified, bp.owner
@@ -238,6 +238,9 @@ PREPARE stmt FROM @query;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+
+
+
 select now();
 SHOW VARIABLES LIKE 'time_zone';
 SHOW VARIABLES LIKE 'system_time_zone';
@@ -246,6 +249,7 @@ SHOW VARIABLES LIKE 'system_time_zone';
 select * from tabsme_Sales_partner tsp order by name desc;
 
 show events;
+SHOW CREATE EVENT xyz_insert_sales_partner;
 show variables like 'event_scheduler';
 
 
