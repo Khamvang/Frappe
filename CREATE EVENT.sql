@@ -24,7 +24,7 @@ DROP EVENT construct_query;
 
 
 
-------------------------------------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------------------------------------------------
 -- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
@@ -91,12 +91,12 @@ DO
 
 SHOW EVENTS;
 
-DROP EVENT IF EXISTS update_and_insert_sales_partner;
-DROP EVENT IF EXISTS set_next_id;
-DROP EVENT IF EXISTS construct_query;
-DROP EVENT IF EXISTS prepare_stmt;
-DROP EVENT IF EXISTS execute_stmt;
-DROP EVENT IF EXISTS deallocate_prepare_stmt;
+DROP EVENT IF EXISTS xyz_insert_sales_partner;
+DROP EVENT IF EXISTS xyz_set_next_id;
+DROP EVENT IF EXISTS xyz_construct_query;
+DROP EVENT IF EXISTS xyz_prepare_stmt;
+DROP EVENT IF EXISTS xyz_execute_stmt;
+DROP EVENT IF EXISTS xyz_deallocate_prepare_stmt;
 
 
 
@@ -127,48 +127,48 @@ https://chatgpt.com/c/c5d8667e-5834-4f4e-a171-9debc9cf27bd
         -- Modify an Event:
         ALTER EVENT 'Event Name'
         ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:00:00'; 
+        STARTS '2024-08-24 00:00:00'; 
         
         For the even name below here
         
-        update_and_insert_sales_partner
-        set_next_id
-        construct_query
-        prepare_stmt
-        execute_stmt
-        deallocate_prepare_stmt
+    xyz_insert_sales_partner
+    xyz_set_next_id
+    xyz_construct_query
+    xyz_prepare_stmt
+    xyz_execute_stmt
+    xyz_deallocate_prepare_stmt
 
 
 -- Result:
-        -- Modify the event update_and_insert_sales_partner
-        ALTER EVENT update_and_insert_sales_partner
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:00:00';
-        
-        -- Modify the event set_next_id (1 minute after update_and_insert_sales_partner)
-        ALTER EVENT set_next_id
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:01:00';
-        
-        -- Modify the event construct_query (5 seconds after set_next_id)
-        ALTER EVENT construct_query
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:01:05';
-        
-        -- Modify the event prepare_stmt (5 seconds after construct_query)
-        ALTER EVENT prepare_stmt
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:01:10';
-        
-        -- Modify the event execute_stmt (5 seconds after prepare_stmt)
-        ALTER EVENT execute_stmt
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:01:15';
-        
-        -- Modify the event deallocate_prepare_stmt (5 seconds after execute_stmt)
-        ALTER EVENT deallocate_prepare_stmt
-        ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-22 13:01:20';
+    -- Modify the event xyz_insert_sales_partner
+    ALTER EVENT xyz_insert_sales_partner
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:00:00';
+    
+    -- Modify the event xyz_set_next_id (1 minute after xyz_insert_sales_partner)
+    ALTER EVENT xyz_set_next_id
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:01:00';
+    
+    -- Modify the event xyz_construct_query (5 seconds after xyz_set_next_id)
+    ALTER EVENT xyz_construct_query
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:01:05';
+    
+    -- Modify the event xyz_prepare_stmt (5 seconds after xyz_construct_query)
+    ALTER EVENT xyz_prepare_stmt
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:01:10';
+    
+    -- Modify the event xyz_execute_stmt (5 seconds after xyz_prepare_stmt)
+    ALTER EVENT xyz_execute_stmt
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:01:15';
+    
+    -- Modify the event xyz_deallocate_prepare_stmt (5 seconds after xyz_execute_stmt)
+    ALTER EVENT xyz_deallocate_prepare_stmt
+    ON SCHEDULE EVERY 1 DAY
+    STARTS '2024-08-24 00:01:20';
 
 
 
