@@ -16,7 +16,7 @@ SHOW CREATE EVENT 'Event Name';
 -- Modify an Event:
 ALTER EVENT 'Event Name'
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 00:00:00';
+STARTS '2024-08-24 00:00:00';
 
 
 -- Delete or Drop the events
@@ -28,7 +28,7 @@ DROP EVENT construct_query;
 -- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:00:00'
+STARTS '2024-08-24 00:00:00'
 DO
     insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
     	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
@@ -46,7 +46,7 @@ DO
 -- 2) Event to Set Next AUTO_INCREMENT Value
 CREATE EVENT IF NOT EXISTS xyz_set_next_id
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:00'
+STARTS '2024-08-24 00:01:00'
 DO
     SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
@@ -55,7 +55,7 @@ DO
 -- 3) Event to Construct the ALTER TABLE Query
 CREATE EVENT IF NOT EXISTS xyz_construct_query
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:05' 
+STARTS '2024-08-24 00:01:05' 
 DO
     SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
 
@@ -64,7 +64,7 @@ DO
 -- 4) Event to Prepare the Statement
 CREATE EVENT IF NOT EXISTS xyz_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:10'  
+STARTS '2024-08-24 00:01:10'  
 DO
     PREPARE stmt FROM @query;
 
@@ -73,7 +73,7 @@ DO
 -- 5) Event to Execute the Statement
 CREATE EVENT IF NOT EXISTS xyz_execute_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:15'  -- 5 seconds after the previous event
+STARTS '2024-08-24 00:01:15'  -- 5 seconds after the previous event
 DO
     EXECUTE stmt;
 
@@ -82,7 +82,7 @@ DO
 -- 6) Event to Deallocate the Statement
 CREATE EVENT IF NOT EXISTS xyz_deallocate_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
+STARTS '2024-08-24 00:01:20'  -- 5 seconds after the previous event
 DO
     DEALLOCATE PREPARE stmt;
 
