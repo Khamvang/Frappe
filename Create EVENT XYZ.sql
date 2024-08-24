@@ -1,30 +1,36 @@
 
--- Create events
+
+-- ------------------------------------------------------------ Keyword for events ------------------------------------------------------------
+-- 1) Create events
 CREATE EVENT IF NOT EXISTS 'Event Name'
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-22 01:02:20'  -- 5 seconds after the previous event
 DO
     'insert logic here';
 
--- Show events
--- To list all events in your database, you can run:
+-- 2) Show events
+-- 2.1) To list all events in your database, you can run:
 SHOW EVENTS;
--- To see detailed information about a specific event:
+
+-- 2.2) To see detailed information about a specific event:
 SHOW CREATE EVENT 'Event Name';
 
+-- 2.3) To list the last datetime that execute your events, Replace 'your_database_name' with the actual schema name
+SELECT EVENT_NAME, STATUS, LAST_EXECUTED FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169';  
 
--- Modify an Event:
+
+-- 4) Modify an Event:
 ALTER EVENT 'Event Name'
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-24 00:00:00';
 
 
--- Delete or Drop the events
+-- 5) Delete or Drop the events
 DROP EVENT construct_query;
 
 
 
--- ----------------------------------------------------------------------------------------------------------------------
+-- ------------------------------------------------------------ XYZ events ------------------------------------------------------------
 -- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
@@ -87,7 +93,7 @@ DO
     DEALLOCATE PREPARE stmt;
 
 
--- __________________________________________________________ If want to show and drop the events __________________________________________________________
+-- ------------------------------------------------------------ If want to show and drop the events ------------------------------------------------------------
 
 SHOW EVENTS;
 
@@ -100,24 +106,7 @@ DROP EVENT IF EXISTS xyz_deallocate_prepare_stmt;
 
 
 
-------- For checking tomorrow
-select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner; 
-
-next_not_cached_value|
----------------------+
-               556395|
-
-
-select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
-from sme_bo_and_plan_id_seq;
-
-(select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner)|minimum_value|maximum_value      |start_value|increment|cache_size|cycle_option|cycle_count|
-----------------------------------------------------------------------+-------------+-------------------+-----------+---------+----------+------------+-----------+
-                                                                556395|            1|9223372036854775806|          1|        1|         0|           0|          0|
-
-
-
--- ____________________________________________________________ 
+-- ------------------------------------------------------------ Request to ChatGPT for make the query to modify the schdule ------------------------------------------------------------
 
 https://chatgpt.com/c/c5d8667e-5834-4f4e-a171-9debc9cf27bd
 
