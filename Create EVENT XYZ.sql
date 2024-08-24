@@ -16,7 +16,7 @@ SHOW EVENTS;
 SHOW CREATE EVENT 'Event Name';
 
 -- 2.3) To list the last datetime that execute your events, Replace 'your_database_name' with the actual schema name
-SELECT EVENT_NAME, STATUS, LAST_EXECUTED FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169';  
+SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;
 
 
 -- 4) Modify an Event:
@@ -103,6 +103,7 @@ DO
 -- ------------------------------------------------------------ If want to show and drop the events ------------------------------------------------------------
 
 SHOW EVENTS;
+SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;
 
 DROP EVENT IF EXISTS xyz_insert_sales_partner;
 DROP EVENT IF EXISTS xyz_set_next_id;
