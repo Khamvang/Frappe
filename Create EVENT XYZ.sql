@@ -56,7 +56,7 @@ STARTS '2024-08-24 00:01:00'
 DO
     SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
-
+SET @next_id_user_var = @next_id;
 
 -- 3) Event to Construct the ALTER TABLE Query
 CREATE EVENT IF NOT EXISTS xyz_construct_query
