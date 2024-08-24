@@ -22,7 +22,7 @@ SELECT EVENT_NAME, STATUS, LAST_EXECUTED FROM information_schema.EVENTS WHERE EV
 -- 4) Modify an Event:
 ALTER EVENT 'Event Name'
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:00:00';
+STARTS '2024-08-25 00:00:00';
 
 
 -- 5) Delete or Drop the events
@@ -34,7 +34,7 @@ DROP EVENT construct_query;
 -- 1) Event to Insert Data
 CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:00:00'
+STARTS '2024-08-25 00:00:00'
 DO
     insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
     	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
@@ -52,43 +52,50 @@ DO
 -- 2) Event to Set Next AUTO_INCREMENT Value
 CREATE EVENT IF NOT EXISTS xyz_set_next_id
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:01:00'
+STARTS '2024-08-25 00:01:00'
 DO
     SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
 
-SET @next_id_user_var = @next_id;
 
--- 3) Event to Construct the ALTER TABLE Query
+-- 3) Store the value in a user-defined variable
+CREATE EVENT IF NOT EXISTS xyz_set_next_id
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:10' -- 10 seconds after the previous event
+DO
+    SET @next_id_user_var = @next_id;
+
+
+-- 4) Event to Construct the ALTER TABLE Query
 CREATE EVENT IF NOT EXISTS xyz_construct_query
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:01:05' 
+STARTS '2024-08-25 00:01:12' -- 2 seconds after the previous event
 DO
     SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
 
 
 
--- 4) Event to Prepare the Statement
+-- 5) Event to Prepare the Statement
 CREATE EVENT IF NOT EXISTS xyz_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:01:10'  
+STARTS '2024-08-25 00:01:14'  -- 2 seconds after the previous event
 DO
     PREPARE stmt FROM @query;
 
 
 
--- 5) Event to Execute the Statement
+-- 6) Event to Execute the Statement
 CREATE EVENT IF NOT EXISTS xyz_execute_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:01:15'  -- 5 seconds after the previous event
+STARTS '2024-08-25 00:01:16'  -- 2 seconds after the previous event
 DO
     EXECUTE stmt;
 
 
 
--- 6) Event to Deallocate the Statement
+-- 7) Event to Deallocate the Statement
 CREATE EVENT IF NOT EXISTS xyz_deallocate_prepare_stmt
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-24 00:01:20'  -- 5 seconds after the previous event
+STARTS '2024-08-25 00:01:18'  -- 2 seconds after the previous event
 DO
     DEALLOCATE PREPARE stmt;
 
@@ -116,7 +123,7 @@ https://chatgpt.com/c/c5d8667e-5834-4f4e-a171-9debc9cf27bd
         -- Modify an Event:
         ALTER EVENT 'Event Name'
         ON SCHEDULE EVERY 1 DAY
-        STARTS '2024-08-24 00:00:00'; 
+        STARTS '2024-08-25 00:00:00'; 
         
         For the even name below here
         
@@ -132,32 +139,32 @@ https://chatgpt.com/c/c5d8667e-5834-4f4e-a171-9debc9cf27bd
     -- Modify the event xyz_insert_sales_partner
     ALTER EVENT xyz_insert_sales_partner
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:00:00';
+    STARTS '2024-08-25 00:00:00';
     
     -- Modify the event xyz_set_next_id (1 minute after xyz_insert_sales_partner)
     ALTER EVENT xyz_set_next_id
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:01:00';
+    STARTS '2024-08-25 00:01:00';
     
     -- Modify the event xyz_construct_query (5 seconds after xyz_set_next_id)
     ALTER EVENT xyz_construct_query
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:01:05';
+    STARTS '2024-08-25 00:01:05';
     
     -- Modify the event xyz_prepare_stmt (5 seconds after xyz_construct_query)
     ALTER EVENT xyz_prepare_stmt
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:01:10';
+    STARTS '2024-08-25 00:01:10';
     
     -- Modify the event xyz_execute_stmt (5 seconds after xyz_prepare_stmt)
     ALTER EVENT xyz_execute_stmt
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:01:15';
+    STARTS '2024-08-25 00:01:15';
     
     -- Modify the event xyz_deallocate_prepare_stmt (5 seconds after xyz_execute_stmt)
     ALTER EVENT xyz_deallocate_prepare_stmt
     ON SCHEDULE EVERY 1 DAY
-    STARTS '2024-08-24 00:01:20';
+    STARTS '2024-08-25 00:01:20';
 
 
 
