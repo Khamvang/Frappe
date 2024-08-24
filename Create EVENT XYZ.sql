@@ -58,7 +58,7 @@ DO
 
 
 -- 3) Store the value in a user-defined variable
-CREATE EVENT IF NOT EXISTS xyz_set_next_id
+CREATE EVENT IF NOT EXISTS xyz_store_next_id
 ON SCHEDULE EVERY 1 DAY
 STARTS '2024-08-25 00:01:10' -- 10 seconds after the previous event
 DO
@@ -106,6 +106,7 @@ SHOW EVENTS;
 
 DROP EVENT IF EXISTS xyz_insert_sales_partner;
 DROP EVENT IF EXISTS xyz_set_next_id;
+DROP EVENT IF EXISTS xyz_store_next_id;
 DROP EVENT IF EXISTS xyz_construct_query;
 DROP EVENT IF EXISTS xyz_prepare_stmt;
 DROP EVENT IF EXISTS xyz_execute_stmt;
