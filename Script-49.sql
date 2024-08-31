@@ -99,9 +99,9 @@ replace into tabSME_BO_and_Plan_bk select * from tabSME_BO_and_Plan; -- Updated 
 
 
 -- BO https://docs.google.com/spreadsheets/d/1rKhGY4JN5N0EZs8WiUC8dVxFAiwGrxcMp8-K_Scwlg4/edit#gid=1793628529&fvid=551853106
-replace into SME_BO_and_Plan_report 
+replace into SME_BO_and_Plan_report_2 
 select case when bpr.date_report is null then date(now()) else bpr.date_report end `date_report`, sme.staff_no, 1 `case`, case when bp.`type` = 'New' then 'NEW' when bp.`type` = 'Dor' then 'DOR' when bp.`type` = 'Inc' then 'INC' end `type`,
-	bp.usd_loan_amount, bp.case_no, bp.contract_no, -- bp.customer_name, 
+	bp.normal_bullet, bp.usd_loan_amount, bp.case_no, bp.contract_no, -- bp.customer_name, 
 	concat('=HYPERLINK("http://13.250.153.252:8000/app/sme_bo_and_plan/"&',bp.name,',', '"' , bp.customer_name, '"',')' ) `customer_name`,
 	bp.rank_update,
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' 
@@ -124,6 +124,7 @@ where ((bp.rank_update in ('S','A','B','C') /*or bp.list_type is not null*/ )
 order by sme.id ;
 
 select * from SME_BO_and_Plan_report bpr -- where date_report = '2024-06-21';
+
 
 
 -- _________________ delete in the last month sales plan but can't execute _________________
@@ -238,7 +239,7 @@ PREPARE stmt FROM @query;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-
+select `type`, month_type, COUNT(*)  from temp_sme_pbx_BO tspb group by `type`, month_type
 
 
 select now();
@@ -252,16 +253,87 @@ show events;
 SHOW CREATE EVENT xyz_insert_sales_partner;
 show variables like 'event_scheduler';
 
+SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;  
 
 
-SELECT EVENT_NAME, STATUS, LAST_EXECUTED 
-FROM information_schema.EVENTS 
-WHERE EVENT_SCHEMA = '_8abac9eed59bf169';  -- Replace 'your_database_name' with the actual schema name
+SHOW EVENTS ORDER BY STARTS;
+
+SELECT EVENT_NAME, STARTS
+FROM information_schema.EVENTS
+WHERE EVENT_SCHEMA = 'your_database_name'
+ORDER BY STARTS;
 
 
 
 
+-- ------------------------------------------------------------ XYZ events ------------------------------------------------------------
+-- 1) Event to Insert Data
+CREATE EVENT IF NOT EXISTS xyz_insert_sales_partner
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:00:00'
+DO
+    insert into tabsme_Sales_partner (`current_staff`, `owner_staff`, `broker_type`, `broker_name`, `broker_tel`, `address_province_and_city`, `address_village`, `business_type`,
+    	`year`, `refer_id`, `refer_type`, `creation`, `modified`, `owner`)
+    select case when bp.callcenter_of_sales is not null then bp.callcenter_of_sales else bp.staff_no end `current_staff` , 
+    	bp.own_salesperson `owner_staff`, bp.is_sales_partner `broker_type`, bp.customer_name `broker_name`, bp.customer_tel `broker_tel`,
+    	bp.address_province_and_city, bp.address_village, bp.business_type, bp.`year`, bp.name `refer_id`, 'tabSME_BO_and_Plan' `refer_type`,
+    	bp.creation, bp.modified, bp.owner
+    from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+    left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
+    where bp.is_sales_partner in ('X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ')
+    	and bp.name not in (select refer_id from tabsme_Sales_partner where refer_type = 'tabSME_BO_and_Plan');
 
+
+
+-- 2) Event to Set Next AUTO_INCREMENT Value
+CREATE EVENT IF NOT EXISTS xyz_set_next_id
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:00'
+DO
+    SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+
+
+-- 3) Store the value in a user-defined variable
+CREATE EVENT IF NOT EXISTS xyz_store_next_id
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:10' -- 10 seconds after the previous event
+DO
+    SET @next_id_user_var = @next_id;
+
+
+-- 4) Event to Construct the ALTER TABLE Query
+CREATE EVENT IF NOT EXISTS xyz_construct_query
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:12' -- 2 seconds after the previous event
+DO
+    SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+
+
+
+-- 5) Event to Prepare the Statement
+CREATE EVENT IF NOT EXISTS xyz_prepare_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:14'  -- 2 seconds after the previous event
+DO
+    PREPARE stmt FROM @query;
+
+
+
+-- 6) Event to Execute the Statement
+CREATE EVENT IF NOT EXISTS xyz_execute_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:16'  -- 2 seconds after the previous event
+DO
+    EXECUTE stmt;
+
+
+
+-- 7) Event to Deallocate the Statement
+CREATE EVENT IF NOT EXISTS xyz_deallocate_prepare_stmt
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-25 00:01:18'  -- 2 seconds after the previous event
+DO
+    DEALLOCATE PREPARE stmt;
 
 
 
@@ -672,7 +744,7 @@ where rank1 in ('S', 'A', 'B', 'C')
 
 
 
-select * from tabsme_Employees ;
+select staff_no, main_contact  from tabsme_Employees ;
 
 update tabsme_Employees
 	set main_contact = 
@@ -747,7 +819,8 @@ order by case when bp.callcenter_of_sales is null or bp.callcenter_of_sales = ''
 
 
 
-
+select 
+from tabSME_BO_and_Plan tsbap 
 
 
 
