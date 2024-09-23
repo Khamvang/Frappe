@@ -20,7 +20,7 @@ create table `sme_pre_daily_report` (
 -- 2 create EVENT to insert data to the table sme_pre_daily_report
 CREATE EVENT IF NOT EXISTS `insert_to_sme_pre_daily_report`
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 11:00:00' 
+STARTS '2024-08-23 02:00:00' 
 DO
 	insert into `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`)
 	select 	date(now()) `date_report`,
@@ -57,3 +57,10 @@ CREATE INDEX idx_tabSME_BO_and_Plan_callcenter_of_sales ON tabSME_BO_and_Plan(ca
 
 -- Optional: Composite index on rank_update and contract_status (if frequently used together in WHERE clauses)
 CREATE INDEX idx_tabSME_BO_and_Plan_rank_contract ON tabSME_BO_and_Plan(rank_update, contract_status);
+
+
+
+-- 4) Drop the Existing Event
+DROP EVENT IF EXISTS `insert_to_sme_pre_daily_report`;
+
+
