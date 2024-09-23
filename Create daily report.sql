@@ -18,12 +18,23 @@ create table `sme_pre_daily_report` (
 
 
 -- 2 create EVENT to insert data to the table sme_pre_daily_report
+
+-- 2.1 delete old data, if exist today report before insert new data
+CREATE EVENT IF NOT EXISTS `delete_sme_pre_daily_report`
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-23 20:00:00'
+DO
+	delete from sme_pre_daily_report where date_report = date(now());
+
+
+
+-- 2.2 Insert new data to table before report
 CREATE EVENT IF NOT EXISTS `insert_to_sme_pre_daily_report`
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 02:00:00' 
+STARTS '2024-08-23 20:05:00'
 DO
 	insert into `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`)
-	select 	date(now()) `date_report`,
+	select date(now()) `date_report`,
 		bp.name `bp_name`, 
 		bp.`rank_update` , 
 		case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `now_result`,
@@ -60,12 +71,16 @@ CREATE INDEX idx_tabSME_BO_and_Plan_rank_contract ON tabSME_BO_and_Plan(rank_upd
 
 
 
--- 4) Drop the Existing Event
+-- 4) Show Events
+SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;
+
+
+-- 5) Drop the Existing Event
 DROP EVENT IF EXISTS `insert_to_sme_pre_daily_report`;
 
 
 
--- 5) Remvoe deplucate, if need
+-- 6) Remvoe deplucate, if need
 delete from sme_pre_daily_report where bp_name in (
 select `bp_name` from ( 
 		select `bp_name`, row_number() over (partition by `bp_name`, `date_report` order by field(`rank_update`, "S", "A", "B", "C", "F"), id ) as row_numbers  
