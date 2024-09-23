@@ -64,3 +64,13 @@ CREATE INDEX idx_tabSME_BO_and_Plan_rank_contract ON tabSME_BO_and_Plan(rank_upd
 DROP EVENT IF EXISTS `insert_to_sme_pre_daily_report`;
 
 
+
+-- 5) Remvoe deplucate, id need
+delete from sme_pre_daily_report where bp_name in (
+select `bp_name` from ( 
+		select `bp_name`, row_number() over (partition by `bp_name`, `date_report` order by field(`rank_update`, "S", "A", "B", "C", "F"), id ) as row_numbers  
+		from sme_pre_daily_report
+	) as t1
+where row_numbers > 1 
+);
+
