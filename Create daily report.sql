@@ -33,7 +33,7 @@ DO
 		bp.`disbursement_date_pay_date` 
 	from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
 	left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
-	where rank_update in ('S','A','B','C') 
+	where rank_update in ('S','A','B','C','F') 
 		and bp.contract_status != 'Contracted' -- if contracted then not need
 		and bp.contract_status != 'Cancelled' -- if cencalled then not need
 		and bp.`type` in ('New', 'Dor', 'Inc') -- new only 3 products
