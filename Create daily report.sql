@@ -65,7 +65,7 @@ DROP EVENT IF EXISTS `insert_to_sme_pre_daily_report`;
 
 
 
--- 5) Remvoe deplucate, id need
+-- 5) Remvoe deplucate, if need
 delete from sme_pre_daily_report where bp_name in (
 select `bp_name` from ( 
 		select `bp_name`, row_number() over (partition by `bp_name`, `date_report` order by field(`rank_update`, "S", "A", "B", "C", "F"), id ) as row_numbers  
