@@ -83,6 +83,65 @@ order by sme.id ;
 
 
 
+-- ________________________________________________________________________ 
+
+
+-- 1) insert data to table
+insert into pbx_unique  
+select null id, callee_number 'contact_no',
+	case when status = 'FAILED' or status = 'BUSY' or status = 'VOICEMAIL' then 'NO ANSWER' else status end status ,
+	'pbx_cdr' `priority_type`,
+	date_format(`time`, '%Y-%m-%d') date_created,
+	date(now()) date_updated,
+	0 lalcocustomer_id ,
+	0 custtbl_id ,
+	id `pbxcdr_id` ,
+	0 `pbxcdr_called_time` ,
+	0 `contract_id`,
+	0 `lcc_id`,
+	0 `BOP_id`
+from lalco_pbx.pbx_cdr pc 
+where -- status = 'ANSWERED' and communication_type = 'Outbound'
+	   status in ('NO ANSWER', 'FAILED', 'BUSY', 'VOICEMAIL' ) and communication_type = 'Outbound'
+ and date_format(`time`, '%Y-%m-%d') between '2024-10-01' and '2024-10-31' -- please chcek this date from table all_unique_analysis
+ and CONCAT(LENGTH(callee_number), left( callee_number, 5)) in ('1190302','1190304','1190305','1190307','1190309','1290202','1290205','1290207','1290209')
+group by callee_number ;
+
+
+-- 2) update set contact_id
+update pbx_unique set contact_id = case when left(contact_no,4) = '9020' then right(contact_no,8) when left(contact_no,4) = '9030' then right(contact_no,7) end ;
+
+
+-- 3) delete duplicate
+delete from pbx_unique where id in (
+	select id from ( 
+			select id , row_number() over (partition by contact_id order by FIELD(`status`,  "ANSWERED", "NO ANSWER"), date_created desc) as row_numbers  
+			from pbx_unique  
+			) as t1
+		where row_numbers > 1
+);
+
+
+
+-- 4) update
+update temp_sme_pbx_sp ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
+set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
+
+
+-- 5) export to frappe 
+select * from temp_sme_pbx_sp;
+
+
+-- 6) update Dor and Inc
+update temp_dor_inc set customer_tel = concat(90, customer_tel);
+
+update temp_dor_inc tdi join pbx_unique pu on (tdi.customer_tel = pu.contact_no)
+set tdi.pbx_status = pu.status, tdi.`date` = pu.date_created 
+
+
+select * from temp_dor_inc tdi 
+
+
 
 
 
