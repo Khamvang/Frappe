@@ -42,7 +42,7 @@ where ( (bp.rank1 in ('F') and bp.rank_update not in ('FFF') )
 
 -- 6) Export data to allocate the cases of resigned employees to current employees
 select tb.* , bp.usd_loan_amount, 
-	case when sme2.dept is null then 'Resigned'
+	case when sme.dept is null then 'Resigned' when sme2.dept is null then 'Resigned'
 		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
 	end as `is_own`,
