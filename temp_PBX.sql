@@ -85,8 +85,7 @@ order by sme.id ;
 
 -- ________________________________________________________________________ 
 
-
--- 1) insert data to table
+-- 1) insert data to table Run on server Locahost
 insert into pbx_unique  
 select null id, callee_number 'contact_no',
 	case when status = 'FAILED' or status = 'BUSY' or status = 'VOICEMAIL' then 'NO ANSWER' else status end status ,
