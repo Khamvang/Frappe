@@ -57,26 +57,61 @@ where bp.address_province_and_city in ('Vientiane Province - Vangvieng', 'Vienti
 ;
 
 
--- 4) update sales
+-- 4) Export Approach list from i7 server
+select now() `creation`, now() `modified`, 
+	null `modified_by`, 'Administrator' `owner`, 
+	null `staff_no`, 
+	name `customer_name`, 
+	contact_no `customer_tel`, 
+	concat(province_eng, ' - ', district_eng ) `address_province_and_city`, 
+	village `address_village`, 
+	`maker`, `model`,
+	case when branch_name = 'Vangvieng - Vientiane Province' then 'Vangvieng'
+		when branch_name = 'Parkngum - Vientiane Capital' then 'Mayparkngum'
+		when branch_name = 'Xaythany - Vientiane Capital' then 'Xaythany'
+		when branch_name = 'Hadxayfong - Vientiane Capital' then 'Hadxaifong'
+		when branch_name = 'Naxaythong - Vientiane Capital' then 'Naxaiythong'
+		when branch_name = 'Phongsary' then 'Phongsary'
+		when branch_name = 'Nam Bak - Luangprabang' then 'Nambak'
+		when branch_name = 'Xaisomboun' then 'Xaisomboun'
+		when branch_name = 'Kham - Xiengkhuang' then 'Kham'
+		when branch_name = 'Parklai - Xayaboury' then 'Parklai'
+		when branch_name = 'Songkhone - Savanakhet' then 'Songkhone'
+		when branch_name = 'Phine - Savanakhet' then 'Phine'
+		when branch_name = 'Khamkeut - Borikhamxay' then 'Khamkeuth'
+		when branch_name = 'Phonthong - Champasack' then 'Chongmeg (Phonthong)'
+		when branch_name = 'Paksong - Champasack' then 'Paksxong'
+		when branch_name = 'Sekong' then 'Sekong'
+		else null
+	end as `branch_name`, 
+	'Approachlist' `approach_type`, 
+	id `approach_id`
+from contact_for_202409_lcc
+where branch_name like '%-%' or branch_name in ('Phongsary', 'Xaisomboun', 'Sekong')
+
+
+
+
+-- 5) update salesperson in charge
 update tabSME_Approach_list
 	set staff_no = case 
-		when branch_name = 'Nam Bak - Luangprabang' then '1552 - VATH'
-		when branch_name = 'Sekong' then '387 - LEY'
-		when branch_name = 'Parkngum - Vientiane Capital' then '1319 - FON'
-		when branch_name = 'Hadxayfong - Vientiane Capital' then '1615 - AON'
-		when branch_name = 'Naxaythong - Vientiane Capital' then '843 - NY'
+		when branch_name = 'Vangvieng' then '3643 - NICK'
+		when branch_name = 'Mayparkngum' then '1319 - FON'
+		when branch_name = 'Xaythany' then '1459 - CAT'
+		when branch_name = 'Hadxaifong' then '1955 - KONG'
+		when branch_name = 'Naxaiythong' then '843 - NY'
+		when branch_name = 'Phongsary' then '616 - TIP'
+		when branch_name = 'Nambak' then '2290 - AUN'
 		when branch_name = 'Xaisomboun' then '2081 - THA'
-		when branch_name = 'Vangvieng - Vientiane Province' then '806 - HONG'
-		when branch_name = 'Xaythany - Vientiane Capital' then '1459 - CAT'
-		when branch_name = 'Kham - Xiengkhuang' then '1139 - PHUN'
-		when branch_name = 'Phongsary' then '2424 - VANG'
-		when branch_name = 'Parklai - Xayaboury' then '1136 - NOY'
-		when branch_name = 'Saysetha - Attapeu' then '1730 - BOUNLEUA'
-		when branch_name = 'Paksong - Champasack' then '2845 - KHAM'
-		when branch_name = 'Khamkeut - Borikhamxay' then '3129 - LEE'
-		when branch_name = 'Songkhone - Savanakhet' then '1770 - PINMANY'
-		when branch_name = 'Phonthong - Champasack' then '3163 - POUNA'
-		else staff_no
+		when branch_name = 'Kham' then '1094 - CHANLA'
+		when branch_name = 'Parklai' then '1136 - NOY'
+		when branch_name = 'Songkhone' then '1454 - DAM'
+		when branch_name = 'Phine' then '487 - OP'
+		when branch_name = 'Khamkeuth' then '2315 - NOU'
+		when branch_name = 'Chongmeg' then '3637 - POUY'
+		when branch_name = 'Paksxong' then '3699 - LY'
+		when branch_name = 'Sekong' then '1730 - BOUNLEUA'
+		else null
 	end,
 	callcenter_of_sales = null
 ;
