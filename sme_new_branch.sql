@@ -79,7 +79,7 @@ select now() `creation`, now() `modified`,
 		when branch_name = 'Songkhone - Savanakhet' then 'Songkhone'
 		when branch_name = 'Phine - Savanakhet' then 'Phine'
 		when branch_name = 'Khamkeut - Borikhamxay' then 'Khamkeuth'
-		when branch_name = 'Phonthong - Champasack' then 'Chongmeg (Phonthong)'
+		when branch_name = 'Phonthong - Champasack' then 'Chongmeg'
 		when branch_name = 'Paksong - Champasack' then 'Paksxong'
 		when branch_name = 'Sekong' then 'Sekong'
 		else null
