@@ -119,6 +119,80 @@ update tabSME_Approach_list
 
 
 
+-- 6) Export SABCF
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	bp.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	bp.rank_update , 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= '2024-10-01'  then 'called' else 'x' end as `call_ status`,
+	bp.visit_or_not ,
+	bp.ringi_status ,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	case when sme2.dept is null then 'Resigned'
+		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
+		else 'Own' 
+	end as `is_own`
+from tabSME_Approach_list bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where bp.approach_type in ('SABC', 'F')
+order by sme.id asc;
+
+
+
+-- 7) Export Approachlist
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	bp.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	bp.rank_update , 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= '2024-10-01'  then 'called' else 'x' end as `call_ status`,
+	bp.visit_or_not ,
+	bp.ringi_status ,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	case when sme2.dept is null then 'Resigned'
+		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
+		else 'Own' 
+	end as `is_own`
+from tabSME_Approach_list bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where bp.approach_type = 'Approachlist'
+order by sme.id asc;
+
 
 
 
