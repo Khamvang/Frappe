@@ -147,8 +147,7 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.rank_of_credit,
 	bp.reason_of_credit,
 	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
-	case when sme2.dept is null then 'Resigned'
-		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
+	case when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
 	end as `is_own`
 from tabSME_Approach_list bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
@@ -185,8 +184,7 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.rank_of_credit,
 	bp.reason_of_credit,
 	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
-	case when sme2.dept is null then 'Resigned'
-		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
+	case when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
 	end as `is_own`
 from tabSME_Approach_list bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
