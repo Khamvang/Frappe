@@ -184,8 +184,19 @@ AND org.sec_branch_no  = 2
 
 
 
-
-
+-- WA to Resigned employees for each Section https://docs.google.com/spreadsheets/d/1hPj0t15mY4OuGQjOPjDYVxQsbExgdq9AtJH3hjGdwNI/edit?gid=1078656354#gid=1078656354
+select concat('856', right(emp.main_contact , length(emp.main_contact) - 2)) `WHATSAPP`,
+concat('ສະບາຍດີ ທ່ານລູກຄ້າ ', right(emp.main_contact , length(emp.main_contact) - 2) ,' ທີ່ຮັກແພງ',
+'
+ສະບາຍດີ ເອື້ອຍດ້າເດີ້ ເອື້ອຍຍັງເຮັດວຽກຢູ່ລາວອາຊຽນຄືເກົ່າເດີ້ ຖ້ານ້ອງມີລູກຄ້າທີ່ເຄີຍຕິດຕາມ ຫຼື ວ່າມີລູກຄ້າສົນໃຈສາມາດເເນະນຳລູກຄ້າມາໄດ້ເດີ້ ລູກຄ້າເກົ່າກໍໄດ້ຄ່ານາຍໜ້າຄືກັນ 1,75 %  ຂອງດອກເບ້ຍທັງໝົດ ເເລ້ວ ເເນະນຳມາເດີ້
+' )
+as `BODY`,
+emp.name `custom_id`
+from tabsme_Employees emp 
+left join sme_org org on (org.staff_no = emp.assignee)
+where emp.staff_status = 'Resigned'
+	and org.sec_branch_no  = 1
+;
 
 
 
