@@ -159,6 +159,7 @@ SELECT
 	concat(current_staff,'_',name) AS 'custom_id'
 FROM tabsme_Sales_partner
 WHERE current_staff like '1003 - %' AND broker_type = '5way - 5ສາຍພົວພັນ'
+	and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ'
 -- limit 10;
 
 
@@ -189,6 +190,7 @@ SELECT
 	concat(current_staff,'_',name) AS 'custom_id'
 FROM tabsme_Sales_partner
 WHERE current_staff like '1003 - %' AND broker_type = '5way - 5ສາຍພົວພັນ'
+	and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ'
 -- limit 10;
 
 
@@ -211,6 +213,7 @@ WHERE broker_type  =
 -- 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ'
 -- 'Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ'
 -- 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'
+	and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ'
 AND org.sec_branch_no  = 2
 
 
@@ -232,7 +235,84 @@ where emp.staff_status = 'Resigned'
 
 
 
+-- Active SP send for Cashier
+select -- count(sp.name) -- sp.name, tmsp.no_of_all_introduce
+concat('856',SUBSTRING(sp.broker_tel, 3)) WHATSAPP,
+CONCAT('ສະບາຍດີ! ທ່ານ ',SUBSTRING(sp.broker_tel, 2),' ທີ່ຮັກແພງ.
+ 
+ພວກເຮົາຢາກຖືໂອກາດນີ້ ສະແດງຄວາມຂອບໃຈມາຍັງທ່ານອີກຄັ້ງສຳລັບລູກຄ້າທີ່ທ່ານໄດ້ແນະນຳໃຫ້ພວກເຮົາໃນອະດີດ, ມັນເປັນຄວາມຍິນດີທີ່ໄດ້ຮ່ວມງານກັນ ແລະ ຮ່ວມມືຕະຫຼອດມາ.
 
+ພວກເຮົາສັງເກດວ່າຊ່ວງນີ້ ທ່ານຍັງບໍ່ໄດ້ມີການແນະນຳລູກຄ້າມາຫາເຮົາເທື່ອ, ແລະເຮົາຢາກຈະສອບຖາມວ່າມີຂໍ້ມູນຫຍັງທີ່ທ່ານຕ້ອງການເພີ່ມເຕີມບໍ ຫຼື ຍັງເງຶ່ອນໄຂໃດບໍຊັດເຈນ ທ່ານສາມາດໂທຫາ ຫຼື ແຊັດຫາໄດ້ເດີ ພວກເຮົາຍິນດີໃຫ້ຂໍ້ມູນທີ່ເປັນປະໂຫຍດ ເພື່ອໃຫ້ທານສາມາດແນະນຳຕໍ່ໃຫ້ລູກຄ້າໄດ້. 
+
+ຂໍຂອບໃຈອີກຄັ້ງ, ພວກເຮົາກຳລັງລໍຖ້າຂ່າວດີຈາກທ່ານ, ຫວັງຢ່າງຍິ່ງວ່າພວກເຮົາຈະໄດ້ຮ່ວມງານກັນອີກຄັ້ງໜຶ່ງ ແລະ ຮ່ວມມືກັນຕະຫຼອດໄປ
+'
+) 
+'BODY',
+sp.name as 'custom_id'
+from tabsme_Sales_partner sp
+left join (select refer_id, count(*) as no_of_all_introduce from temp_sme_Sales_partner group by refer_id) tmsp on sp.refer_id = tmsp.refer_id
+left join temp_sme_Sales_partner tmsp2 on tmsp2.contract_no = (select contract_no from temp_sme_Sales_partner where refer_id = sp.refer_id and date_format(creation, '%Y-%m') NOT between '2024-07' and '2024-09' order by creation desc limit 1)
+left join sme_org sme on (case when locate(' ', sp.owner_staff) = 0 then sp.owner_staff else left(sp.owner_staff, locate(' ', sp.owner_staff)-1) end = sme.staff_no)
+where sp.refer_type = 'LMS_Broker' and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ'
+	-- and sme.staff_no is not null 
+	-- and tmsp.no_of_all_introduce < 5
+	-- and tmsp.no_of_all_introduce >= 3
+ORDER by tmsp.no_of_all_introduce DESC;
+
+
+
+
+
+-- Resigned employees Send for HR
+select concat('856', emp.main_contact ) `WHATSAPP`,
+concat('ສະບາຍດີ ທ່ານ ', emp.main_contact  ,' ທີ່ຮັກແພງ',
+'
+ຂ້ອຍແມ່ນ ພະນັກງານ HR ເດີ. ຖ້າເອື້ອນຍອ້າຍມີລູກຄ້າທີ່ເຄີຍຕິດຕາມ ຫຼື ວ່າມີລູກຄ້າສົນໃຈສາມາດເເນະນຳລູກຄ້າມາໄດ້ເດີ້ ລູກຄ້າເກົ່າກໍໄດ້ຄ່ານາຍໜ້າຄືກັນ 1,75 %  ຂອງດອກເບ້ຍທັງໝົດ ເເລ້ວ ເເນະນຳມາເດີ້
+ແລະ ມີເງຶ່ອນໄຂ ພິເສດຄື ຖ້າເປັນລູກຄ້າເກົ່າທີ່ເຄີຍຈ່າຍດີ ແມ່ນດອກເບັ້ຍຫຼຸດລົງເປັນ 1.99% ແລະ ຖ້າເປັນລູກຄ້າໃໝ່ ປິດງວດຢູ່ບໍລິສັດອື່ນແມ່ນ ດອກເບັ້ຍ 1.29% ເດີເຈົ້າ.
+ຫຼື ຖ້າຢາກກັບມາເຮັດວຽກຄືນ ຫຼື ມີໝູ່ຄູ່ພີ່ນ້ອງທີ່ຢາກໃຫ້ມາເຮັດວຽກຢູ່ ລາໂກ້ແມ່ນສາມາດຕິດຕໍ່ມາໄດ້ເດີເຈົ້າ.
+ຢາລືມໂທຫາເດີ')
+as `BODY`,
+emp.name `custom_id`
+from tabsme_Employees emp 
+left join sme_org org on (org.staff_no = emp.assignee)
+where emp.staff_status = 'Resigned'
+        -- and org.sec_branch_no  = 1
+
+
+
+
+-- Dormant customer send for Credit
+select concat('856', substring(apl.customer_tel, 3)) `WHATSAPP`,
+concat('ສະບາຍດີ ',apl.customer_name ,' (', substring(apl.customer_tel, 3) ,') ທີ່ຮັກແພງ',
+'
+
+ຂ້ອຍແມ່ນ ຫົວໜ້າພະແນກ ອະນຸມັດ ທີ່ລາວອາຊຽນເຊົ່າສິນເຊື່ອ ທີ່ລູກຄ້າເຄີຍມາໃຊ້ບໍລິການຄັ້ງກ່ອນ.
+ພວກເຮົາຕ້ອງຂໍອະໄພມານະທີ່ນີ້ດ້ວຍ ຫາກຄັ້ງກ່ອນທາງເຮົາໃຫ້ບໍລິການບໍທົ່ວເຖິງ ແລະ ພະນັກງານບໍລິການບໍສຸພາບ.
+
+ຂໍ້ຄວາມສະບັບນີ້ເພື່ອຢາກຈະທາບທາມ ຖາມຂ່າວວ່າຊ່ວງນີ້ ທຸລະກິດລູກຄ້າເປັນຈັ່ງໃດ, ສະພາບຄ່ອງທາງການເງິນຍັງສະຖຽນຢູ່ບໍ? ມີຫຍັງທີ່ທາງເຮົາສາມາດຊ່ວຍລູກຄ້າໄດ້ອີກບໍ?
+ແລະ ຢາກແຈ້ງໃຫ້ລູກຄ້າຊາບວ່າ ປະຈຸບັນພວກເຮົາກຳລັງຂະຫຍາຍສາຂາໃໝ່ຢູ່ຫຼາຍສາຂາ ເພື່ອໃກ້ ແລະ ສາມາດໃຫ້ບໍລິການລູກຄ້າໄດ້ທັນທີເມື່ອລູກຄ້າຕ້ອງການ ເຊິ່ງທາງເຮົາຍັງຮັກສາຂໍ້ມູນເກົ່າຂອງລູກຄ້າໄວ້ຢ່າງດີ ສາມາດປະກອບເອກະສານໃຫ້ໄດ້ພາຍໃນມື້ .
+ນອກນັ້ນ, *ທາງເຮົາມີເງື່ອນໄຂພິເສດ* ມາສະເໜີສຳລັບລູກຄ້າເກົ່າຂອງພວກເຮົາທີ່ຈ່າຍດີໃນຄັ້ງກ່ອນຈະໄດ້ຮັບດອກເບ້ຍພິເສດ *1.99%* 
+ແລະ ສຳລັບລົດໃໝ່ປີ 2024 ຮັບດອກເບ້ຍ 1.29%
+
+ພິເສດ: ໃນກໍລະນີທີ່ທ່ານແນະນໍາລູກຄ້າມາໃຫ້, ເມື່ອເຮັດສັນຍາຮຽບຮ້ອຍແລ້ວ *ທ່ານຈະໄດ້ຄ່າຕອບແທນ3,5%* ຂອງດອກເບ້ຍທັງໝົດ
+
+ທ່ານສາມາດປຶກສາ ແລະ ສອບຖາມລາຍລະອຽດທີ່: ກຸ້ງນາງ 020 54967888')
+as `BODY`,
+concat('Credit_',apl.name) `custom_id`
+FROM tabSME_Approach_list apl
+left join tabsme_Employees emp on (apl.staff_no = emp.name)
+left join sme_org org on (emp.staff_no = org.staff_no)
+WHERE approach_type = 'Dormant'
+	-- and apl.usd_loan_amount >= 30000 -- 1st
+	-- and apl.usd_loan_amount between 20000 and 29999 -- 2nd
+	-- and apl.usd_loan_amount between 15000 and 19999 -- 3rd
+	-- and apl.usd_loan_amount between 12500 and 14999 -- 4th
+	-- and apl.usd_loan_amount between 11000 and 12499 -- 5th
+	-- and apl.usd_loan_amount between 10000 and 10999 -- 6th
+	-- and apl.usd_loan_amount between 8000 and 9999 -- 7th
+	-- and apl.usd_loan_amount between 7000 and 7999 -- 8th
+	and apl.usd_loan_amount between 6000 and 6999
+ORDER BY apl.usd_loan_amount DESC
 
 
 
