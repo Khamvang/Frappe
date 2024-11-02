@@ -318,8 +318,8 @@ ORDER BY apl.usd_loan_amount DESC
 
 -- WA to Existing customer for Advising them to pay by BPAY https://docs.google.com/spreadsheets/d/1w5lX1OHwuW4czvGb5JJ_ePK0e7fHSEL4R11zqQAbtJc/edit?gid=1334528456#gid=1334528456
 
-select concat('856', apl.customer_tel) `WHATSAPP`,
-concat('ສະບາຍດີ ລູກຄ້າ ທ່ານ ',apl.customer_name ,' (', apl.customer_tel ,') ທີ່ຮັກແພງ',
+select concat('856', substring(apl.customer_tel, 3)) `WHATSAPP`,
+concat('ສະບາຍດີ ລູກຄ້າ ທ່ານ ',apl.customer_name ,' (', substring(apl.customer_tel, 3) ,') ທີ່ຮັກແພງ',
 '
 
 ຂ້ອຍຊື່ ',org.staff_name ,' ເປັນຫົວໜ້າຂະແໜງການຕະຫຼາດ ຢູ່ LALCO ເດີ.
