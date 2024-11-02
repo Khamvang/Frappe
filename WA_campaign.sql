@@ -316,5 +316,36 @@ ORDER BY apl.usd_loan_amount DESC
 
 
 
+-- WA to Existing customer for Advising them to pay by BPAY https://docs.google.com/spreadsheets/d/1w5lX1OHwuW4czvGb5JJ_ePK0e7fHSEL4R11zqQAbtJc/edit?gid=1334528456#gid=1334528456
+
+select concat('856', apl.customer_tel) `WHATSAPP`,
+concat('ສະບາຍດີ ລູກຄ້າ ທ່ານ ',apl.customer_name ,' (', apl.customer_tel ,') ທີ່ຮັກແພງ',
+'
+
+ຂ້ອຍຊື່ ',org.staff_name ,' ເປັນຫົວໜ້າຂະແໜງການຕະຫຼາດ ຢູ່ LALCO ເດີ.
+ມື້ນີ້, ນ້ອງຈະສົ່ງມາແຈ້ງລູກຄ້າ ເລື່ອງການຊໍາລະຄ່າງວດຜ່ານເລກທີສັນຍາ ຫຼື B-PAY ເດີ 
+
+ນັບແຕ່ມື້ນີ້ໄປ ລົບກວນລູກຄ້າຊຳລະຄ່າງວດຜ່ານ B-PAY ເທົ່ານັ້ນເດີ້ເຈົ້າ 
+ເພື່ອຄວາມ ບໍ່ຕ້ອງເສຍເວລາເຂົ້າມາຖອກເງິນສົດ ຢູ່ບໍລິສັດ ປະຢັດເວລາ ປະຫຍັດຄ່າໄຊ້ຈ່າຍ ສະດວກ ວ່ອງໄວ ປອດໄພ ຂອງລູກຄ້າເອງ 
+ແລະ ສຳຄັນທີ່ສຸດແມ່ນ ການໂອນເງິນຜ່ານລະບົບ B-PAY ແມ່ນບໍ່ໄດ້ເສຍຄ່າທຳນຽມ.
+
+*ວິທີການ*
+1. ແອັບ BCEL ONE ຂອງ ທະນາຄານ ການຄ້າຕ່າງປະເທດລາວ ມະຫາຊົນ 
+2. ກົດເຂົ້າໄປ ລາຍການ *ຈ່າຍຄ່າສິນເຊື່ອຕ່າງໆ* 
+3. ເລືອກ ບໍລິສັດລາວອາຊຽນ ຫຼື *LALCO* ສີຂຽວໆ 
+4. ພິມ *ເລກທີສັນຍາ* 
+5. ພີມ *ຈຳນວນເງິນ* 
+6. ກົດ *ຊຳລະ* 
+7. ແຄັບບິນສົ່ງໃຫ້ພະນັກງານ 
+
+ທ່ານສາມາດປຶກສາ ແລະ ສອບຖາມເພີ່ມຕື່ມ: ', emp.main_contact,'-',org.staff_name)
+as `BODY`,
+emp.name `custom_id`
+FROM tabSME_Approach_list apl
+left join tabsme_Employees emp on (apl.staff_no = emp.name)
+left join sme_org org on (emp.staff_no = org.staff_no)
+WHERE approach_type = 'Existing'
+	and apl.approach_id in ()
+and org.sec_branch_no  = 1;
 
 
