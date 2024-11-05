@@ -92,9 +92,86 @@ where row_numbers > 1
 
 
 
+-- __________________________________________________________ Export the report __________________________________________________________
+https://docs.google.com/spreadsheets/d/1jHRs_TM-B9RHRYsp1tyRLRFpqGemyth4KPxnV9Pnr3U/edit?gid=915570516#gid=915570516
+
+-- 1) Have plan in This month and Next month
+select sme.id `#`, sme.`g-dept`, sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.staff_no, sme.staff_name,
+	bp.`type`, bp.usd_loan_amount, bp.customer_name, bp.rank_update, 
+	case when bp.contract_status = 'Contracted' then 'Have Ringi' when bp.contract_status = 'Cancelled' then 'No Ringi' 
+		when bp.ringi_status = 'Approved' then 'Have Ringi' when bp.ringi_status = 'Pending approval' then 'Have Ringi' 
+		when bp.ringi_status = 'Draft' then 'Have Ringi' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `Ringi_status`,
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' 
+		when bp.ringi_status = 'Approved' then 'APPROVED' when bp.ringi_status = 'Pending approval' then 'PENDING' 
+		when bp.ringi_status = 'Draft' then 'DRAFT' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `now_result`, 
+	bp.disbursement_date_pay_date, 
+	bp.name `id`, date_format(bp.modified, '%Y-%m-%d') `date_modified`
+from sme_pre_daily_report spdr 
+left join tabSME_BO_and_Plan bp on (spdr.bp_name = bp.name)
+left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where spdr.date_report = (select max(date_report) from sme_pre_daily_report)
+	and spdr.disbursement_date_pay_date between CURDATE() and LAST_DAY(DATE_ADD(CURDATE(), INTERVAL 1 MONTH)) -- Date betwwen Today and Next month end
+;
 
 
 
+
+
+-- 2) SABC pending whitout This month and Next month plan
+select sme.id `#`, sme.`g-dept`, sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.staff_no, sme.staff_name,
+	bp.`type`, bp.usd_loan_amount, bp.customer_name, bp.rank_update, 
+	case when bp.contract_status = 'Contracted' then 'Have Ringi' when bp.contract_status = 'Cancelled' then 'No Ringi' 
+		when bp.ringi_status = 'Approved' then 'Have Ringi' when bp.ringi_status = 'Pending approval' then 'Have Ringi' 
+		when bp.ringi_status = 'Draft' then 'Have Ringi' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `Ringi_status`,
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' 
+		when bp.ringi_status = 'Approved' then 'APPROVED' when bp.ringi_status = 'Pending approval' then 'PENDING' 
+		when bp.ringi_status = 'Draft' then 'DRAFT' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `now_result`, 
+	bp.disbursement_date_pay_date, 
+	bp.name `id`, date_format(bp.modified, '%Y-%m-%d') `date_modified`,
+	case when bp.modified >= DATE_FORMAT(NOW(), '%Y-%m-01') then 'Called' else 0 end `is_call_this_month`,
+	case when bp.modified >= CURDATE() then 'Called' else 0 end `is_call_today`
+from sme_pre_daily_report spdr 
+left join tabSME_BO_and_Plan bp on (spdr.bp_name = bp.name)
+left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where spdr.date_report = (select max(date_report) from sme_pre_daily_report)
+	and ( 
+			spdr.disbursement_date_pay_date not between CURDATE() and LAST_DAY(DATE_ADD(CURDATE(), INTERVAL 1 MONTH))
+			or spdr.disbursement_date_pay_date is null 
+		)
+	and rank_update_SABC = 1
+;
+
+
+-- 3) F pending whitout This month and Next month plan
+select sme.id `#`, sme.`g-dept`, sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.staff_no, sme.staff_name,
+	bp.`type`, bp.usd_loan_amount, bp.customer_name, bp.rank_update, 
+	case when bp.contract_status = 'Contracted' then 'Have Ringi' when bp.contract_status = 'Cancelled' then 'No Ringi' 
+		when bp.ringi_status = 'Approved' then 'Have Ringi' when bp.ringi_status = 'Pending approval' then 'Have Ringi' 
+		when bp.ringi_status = 'Draft' then 'Have Ringi' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `Ringi_status`,
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' 
+		when bp.ringi_status = 'Approved' then 'APPROVED' when bp.ringi_status = 'Pending approval' then 'PENDING' 
+		when bp.ringi_status = 'Draft' then 'DRAFT' when bp.ringi_status = 'Not Ringi' then 'No Ringi' 
+	end `now_result`, 
+	bp.disbursement_date_pay_date, 
+	bp.name `id`, date_format(bp.modified, '%Y-%m-%d') `date_modified`,
+	case when bp.modified >= DATE_FORMAT(NOW(), '%Y-%m-01') then 'Called' else 0 end `is_call_this_month`,
+	case when bp.modified >= CURDATE() then 'Called' else 0 end `is_call_today`
+from sme_pre_daily_report spdr 
+left join tabSME_BO_and_Plan bp on (spdr.bp_name = bp.name)
+left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+where spdr.date_report = (select max(date_report) from sme_pre_daily_report)
+	and ( 
+			spdr.disbursement_date_pay_date not between CURDATE() and LAST_DAY(DATE_ADD(CURDATE(), INTERVAL 1 MONTH))
+			or spdr.disbursement_date_pay_date is null 
+		)
+	and rank_update_SABC = 0
+	and sme.id is not null
+;
 
 
 
