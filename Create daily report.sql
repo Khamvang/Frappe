@@ -7,7 +7,7 @@ create table `sme_pre_daily_report` (
   `bp_name` int(11) not null,
   `rank_update` varchar(255) default null,
   `now_result` varchar(255) default null,
-  `rank_update_SABC` varchar(255) default null,
+  `rank_update_SABC` int(11) not null default 0,
   `visit_or_not` varchar(255) default null,
   `ringi_status` varchar(255) default null,
   `disbursement_date_pay_date` date default null,
@@ -88,4 +88,17 @@ select `bp_name` from (
 	) as t1
 where row_numbers > 1 
 );
+
+
+
+
+
+
+
+
+
+
+
+
+
 
