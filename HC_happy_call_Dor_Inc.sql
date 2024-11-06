@@ -102,7 +102,7 @@ select apl.creation,
 		when sme.unit_no = 77 then '4464 - MYNO'
 		when sme.unit_no = 78 then '4100 - SANUN'
 	end 'Non-sales',
-	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', apl.name) as `Edit`,
+	concat('http://13.250.153.252:8000/app/sme_approach_list/', apl.name) as `Edit`,
 	apl.rank_update, 
 	apl.rank_of_credit,
 	apl.reason_of_credit ,
@@ -210,7 +210,7 @@ select apl.creation,
 		when sme.unit_no = 77 then '4464 - MYNO'
 		when sme.unit_no = 78 then '4100 - SANUN'
 	end 'Non-sales',
-	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', apl.name) as `Edit`,
+	concat('http://13.250.153.252:8000/app/sme_approach_list/', apl.name) as `Edit`,
 	apl.rank_update, 
 	apl.rank_of_credit,
 	apl.reason_of_credit ,
