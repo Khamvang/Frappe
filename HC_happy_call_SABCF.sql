@@ -54,7 +54,16 @@ inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
 order by sme.id asc;
 
 
+-- 7) Assigned based on condition https://docs.google.com/spreadsheets/d/1K_5l_CWaIlt_tR45hhvoV1nSfPmc8BlX9RZfSpdOzr4/edit?gid=1905202920#gid=1905202920
 
+
+-- 8) Import the current staff to temp_sme_pbx_BO
+-- Need to please ON DUPLICATE UPDATE
+
+
+-- 9) Update the current staff to tabSME_BO_and_Plan
+update tabSME_BO_and_Plan bp inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
+set bp.staff_no = tb.current_staff ;
 
 
 
