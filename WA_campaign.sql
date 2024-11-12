@@ -113,9 +113,9 @@ WHERE approach_type = 'Approach list'
 
 
 
--- WA campaign for Past SABC over 1 year for IT team
+-- WA campaign for Past SABC for Non-sales
 SELECT 
-    CONCAT('856', SUBSTRING(apl.customer_tel, 2)) AS `WHATSAPP`,
+    CONCAT('856', SUBSTRING(apl.customer_tel, 3)) AS `WHATSAPP`,
     'ສະບາຍດີ,
 ຂໍໂທດທີ່ລົບກວນ!
 
@@ -130,6 +130,14 @@ SELECT
 ລໍຖ້າໃຫ້ການຊ່ວຍເຫຼືອທ່ານ!
 ດ້ວຍຄວາມນັບຖືຢ່າງສູງ
 ຄຳ ເບີໂທ 020 99222886' AS `BODY`, 
+-- IT >> ຄຳ ເບີໂທ 020 99222886
+-- IT >> ຕູ້ ເບີໂທ 020 29917549
+-- Credit >> ຫວຽດ ເບີໂທ 20 76 467 771
+-- HR >> ເດດ ເບີໂທ 20 22 296 395
+-- Accounting >> ນ້ອຍ ເບີໂທ 20 52 310 590
+-- Cashier >> ຈີຈີ່ ເບີໂທ 20 54 282 686
+-- Legal >> ມິດ ເບີໂທ 20 99 898 871
+-- Survey >> ຂັນ ເບີໂທ 20 98 009 794
     apl.name AS `custom_id`
 from tabSME_Approach_list apl
 left join tabsme_Employees emp on (apl.staff_no = emp.name)
@@ -137,7 +145,6 @@ left join sme_org sme on (emp.staff_no = sme.staff_no)
 where apl.approach_type = 'SABC' -- 'Dormant', 'Existing'
   and sme.unit_no in (1)
 ;
-
 
 
 
