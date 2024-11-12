@@ -115,29 +115,28 @@ WHERE approach_type = 'Approach list'
 
 -- WA campaign for Past SABC over 1 year for IT team
 SELECT 
-    CONCAT('856', SUBSTRING(bp.customer_tel, 2)) AS `WHATSAPP`,
+    CONCAT('856', SUBSTRING(apl.customer_tel, 2)) AS `WHATSAPP`,
     'ສະບາຍດີ,
 ຂໍໂທດທີ່ລົບກວນ!
 
 ຂ້ອຍຊື່ ຄຳ, ເປັນພະນັກງານ ຂອງບໍລິສັດ LALCO, ເຊິ່ງເປັນບໍລິສັດຊັ້ນນໍາທີ່ສະເຫນີການແກ້ໄຂທາງດ້ານການເງິນທີ່ຍືດຫຍຸ່ນເພື່ອຕອບສະຫນອງຄວາມຕ້ອງການຂອງທຸກທ່ານ. ພວກເຮົາໃຫ້ທາງເລືອກປ່ອຍສິນເຊື່ອໂດຍບໍ່ຈຳກັດຈຳນວນເງິນກູ້ຢືມ, ເຮັດໃຫ້ມັນງ່າຍສໍາລັບທ່ານທີ່ຈະສະໜອງທຶນໃຫ້ກັບໂຄງການ ຫຼື ທຸລະກິດຂອງທ່ານ.
 
 ນີ້ແມ່ນບາງຜົນປະໂຫຍດທີ່ສໍາຄັນໃນການບໍລິການຂອງພວກເຮົາ:
+- ໃຊ້ພຽງແຕ່ ໃບທະບຽນລົດໃຫຍ່ ເປັນຫຼັກຊັບຄ້ຳປະກັນ
 - ອັດຕາດອກເບ້ຍເລີ່ມຕົ້ນຕໍ່າສຸດ 1.29% ແລະສູງສຸດ 3% ຕໍ່ເດືອນ.
 - ໄລຍະເວລາການກູ້ຢືມມີຕັ້ງແຕ່ 3 ຫາ 36 ເດືອນ, ເຫມາະສົມກັບຄວາມສະດວກສະບາຍຂອງທ່ານ.
 ຖ້າຫາກທ່ານມີຄວາມສົນໃຈ ຢາກຮັບຮູ້ຂໍ້ມູນເພີ່ມເຕີມ ຫຼືມີຄໍາຖາມໃດໆ, ກະລຸນາຕິດຕໍ່ຫາໄດ້. ພວກເຮົາຢູ່ທີ່ນີ້ເພື່ອຊ່ວຍໃຫ້ທ່ານຕັດສິນໃຈທາງດ້ານການເງິນທີ່ດີທີ່ສຸດສໍາລັບທຸລະກິດ ຫຼືຄວາມຕ້ອງການສ່ວນບຸກຄົນຂອງທ່ານ.
 
 ລໍຖ້າໃຫ້ການຊ່ວຍເຫຼືອທ່ານ!
 ດ້ວຍຄວາມນັບຖືຢ່າງສູງ
-ຄຳ ເບີໂທ 020 2930 1330' AS `BODY`, 
-    tb.id AS `custom_id`
-FROM 
-    tabSME_BO_and_Plan AS bp
-JOIN 
-    temp_sme_pbx_BO AS tb ON bp.name = tb.id
-WHERE 
-    tb.type IN ('S', 'A', 'B', 'C') 
-    AND tb.month_type > 12
-LIMIT 2;
+ຄຳ ເບີໂທ 020 99222886' AS `BODY`, 
+    apl.name AS `custom_id`
+from tabSME_Approach_list apl
+left join tabsme_Employees emp on (apl.staff_no = emp.name)
+left join sme_org sme on (emp.staff_no = sme.staff_no)
+where apl.approach_type = 'SABC' -- 'Dormant', 'Existing'
+  and sme.unit_no in (1)
+;
 
 
 
