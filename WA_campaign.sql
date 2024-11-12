@@ -137,7 +137,7 @@ SELECT
 -- Accounting >> ນ້ອຍ ເບີໂທ 20 52 310 590
 -- Cashier >> ຈີຈີ່ ເບີໂທ 20 54 282 686
 -- Collection >> ມົວ ເບີໂທ 20 56 068 519
--- Legal >> ມິດ ເບີໂທ 20 99 898 871
+-- Legal >> ມິດ ເບີໂທ 20 29 572 687
 -- Survey >> ຂັນ ເບີໂທ 20 98 009 794
     apl.name AS `custom_id`
 from tabSME_Approach_list apl
