@@ -83,9 +83,9 @@ order by sme.id ;
 
 
 
--- ________________________________________________________________________ 
+-- ________________________________________________________________________ Update PBX data ________________________________________________________________________
 
--- 1) insert data to table Run on server Locahost
+-- 1) insert data to table Run on server Locahost i7
 insert into pbx_unique  
 select null id, callee_number 'contact_no',
 	case when status = 'FAILED' or status = 'BUSY' or status = 'VOICEMAIL' then 'NO ANSWER' else status end status ,
@@ -102,7 +102,7 @@ select null id, callee_number 'contact_no',
 from lalco_pbx.pbx_cdr pc 
 where -- status = 'ANSWERED' and communication_type = 'Outbound'
 	   status in ('NO ANSWER', 'FAILED', 'BUSY', 'VOICEMAIL' ) and communication_type = 'Outbound'
- and date_format(`time`, '%Y-%m-%d') between '2024-10-01' and '2024-10-31' -- please chcek this date from table all_unique_analysis
+ and date_format(`time`, '%Y-%m-%d') between '2024-11-01' and '2024-11-31' -- please chcek this date from table all_unique_analysis
  and CONCAT(LENGTH(callee_number), left( callee_number, 5)) in ('1190302','1190304','1190305','1190307','1190309','1290202','1290205','1290207','1290209')
 group by callee_number ;
 
@@ -154,6 +154,7 @@ update temp_dor_inc tdi join pbx_unique pu on (tdi.customer_tel = pu.contact_no)
 set tdi.pbx_status = pu.status, tdi.`date` = pu.date_created 
 
 
+-- 7) export to HC Dor and Inc > Sheet PBX
 select * from temp_dor_inc tdi 
 
 
