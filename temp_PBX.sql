@@ -122,16 +122,58 @@ delete from pbx_unique where id in (
 
 
 
--- 4) update
+-- 4) Prepare table temp_dor_inc, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_dor_inc (One time per month)
+select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff` 
+from tabSME_Approach_list 
+where approach_type in ('Dormant', 'Existing');
+
+
+/* 
+-- To remove duplicate, if have any duplicate contract_no
+delete from tabSME_Approach_list where name in (
+	select name from ( 
+			select name , row_number() over (partition by approach_id order by FIELD(`approach_type`,  "Dormant", "Existing") ) as row_numbers  
+			from tabSME_Approach_list where approach_type in ('Dormant', 'Existing')
+			) as t1
+		where row_numbers > 1
+);
+*/
+
+
+-- 5) Prepare table temp_sme_pbx_sp, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_sp (One time per month)
+select sp.name `id`, sp.broker_tel, null `pbx_status`, null `date`, sp.current_staff 
+from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+where sme.`unit_no` is not null;
+
+
+
+-- 6)  Prepare table temp_sme_pbx_BO, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_BO (One time per month)
+select * from temp_sme_pbx_BO;
+
+
+-- Past SABCF
+-- 7) update
+update temp_sme_pbx_bo ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
+set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
+
+-- 8) export to frappe 
+select * from temp_sme_pbx_bo;
+
+
+
+-- Sales partner
+-- 9) update
 update temp_sme_pbx_sp ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
 set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
 
 
--- 5) export to frappe 
+-- 10) export to frappe 
 select * from temp_sme_pbx_sp;
 
 
--- 6) update Dor and Inc
+
+-- Dormant and Existing
+-- 11) update Dor and Inc
 update temp_dor_inc set customer_tel = 
 	case when customer_tel = '' then ''
 		when (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 11 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),3) = '020')
@@ -150,11 +192,13 @@ update temp_dor_inc set customer_tel =
 ;
 
 
+
+-- 12) update
 update temp_dor_inc tdi join pbx_unique pu on (tdi.customer_tel = pu.contact_no)
 set tdi.pbx_status = pu.status, tdi.`date` = pu.date_created 
 
 
--- 7) export to HC Dor and Inc > Sheet PBX
+-- 13) export to HC Dor and Inc > Sheet PBX
 select * from temp_dor_inc tdi 
 
 
