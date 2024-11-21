@@ -110,17 +110,51 @@ update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') wher
 
 -- 7) Assign person in charge for Sales partner of Resigned employees
 
+-- checking
+/*
+select sp.name `id`, sp.refer_id `lms_broker_id`,
+	sp.current_staff `sp_current_staff`, 
+	sme.staff_no `sp_staff_no`, 
+	sp.owner_staff `sp_owner_staff`, 
+	tmspd.owner_staff `tmspd_owner_staff`,
+	sme2.staff_no `tmspd_staff_no`,
+	case when sme2.staff_no != '' then te2.name 
+		when sme.staff_no != '' then te.name
+		else null
+	end `current_staff`
+from tabsme_Sales_partner sp
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
+left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
+left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
+where sp.refer_type = 'LMS_Broker';
+*/
+
+-- update
+update tabsme_Sales_partner sp
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
+left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
+left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
+set sp.current_staff = 
+	case when sme2.staff_no is null then te2.name 
+		when sme.staff_no is null then te.name
+		else sp.current_staff
+	end,
+	sp.owner_staff = tmspd.owner_staff
+where sp.refer_type = 'LMS_Broker';
+
+
+-- Export the list which is not active sales to assign again
 
 
 
 
 
 
-
-
-
-
--- Check the number of introduce
+-- 8) Check the number of introduce
 select sp.name `id`, sp.refer_id `lms_broker_id` , tmsp.no_of_introduces `all_introduces`, tmsp3.no_of_introduces `3months_introduces`,
 	case when tmsp3.no_of_introduces >= 10 then 'Diamond'
 		when tmsp3.no_of_introduces >= 6 then 'Gold'
@@ -133,12 +167,14 @@ select sp.name `id`, sp.refer_id `lms_broker_id` , tmsp.no_of_introduces `all_in
 		when tmsp3.no_of_introduces >= 3 then '3.36%'
 		when tmsp3.no_of_introduces >= 0 then '3.5%'
 		else '3.5%'
-	end `commission_rate`
+	end `commission_rate`,
+	sp.current_staff, sme.staff_no, sp.owner_staff `sp_owner_staff`, tmspd.owner_staff `tmspd_owner_staff`
 from tabsme_Sales_partner sp
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
 left join (select refer_id, count(*) as `no_of_introduces` from temp_sme_Sales_partner group by refer_id) tmsp on sp.refer_id = tmsp.refer_id
 left join (select refer_id, count(*) as `no_of_introduces` from temp_sme_Sales_partner where creation > DATE_ADD(LAST_DAY(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)), INTERVAL 1 DAY) group by refer_id) tmsp3 on sp.refer_id = tmsp3.refer_id
 where sp.refer_type = 'LMS_Broker';
-
 
 
 
