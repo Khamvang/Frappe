@@ -39,7 +39,8 @@ select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null
 	end `broker_tel`,
 	concat(left(pr.province_name, locate('-', pr.province_name)-2), ' - ', ci.city_name) `address_province_and_city`, 
 	convert(cast(convert(vi.village_name_lao using latin1) as binary) using utf8) `address_village`, null `broker_workplace`, 
-	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, c.contract_no, null `rank`, b.id `refer_id`, 'LMS_Broker' `refer_type`
+	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, c.contract_no, null `rank`, b.id `refer_id`, 'LMS_Broker' `refer_type`,
+	CASE p.contract_type WHEN 1 THEN 'SME Car' WHEN 2 THEN 'SME Bike' WHEN 3 THEN 'Car Leasing' WHEN 4 THEN 'Bike Leasing' when 5 then 'Real estate' END `contract_type`
 from tblcontract c left join tblprospect p on (p.id = c.prospect_id)
 left join tblbroker b on (b.id = p.broker_id)
 left join tbluser u on (u.id = p.salesperson_id)
@@ -95,7 +96,7 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 
--- ---------------------------------- update sales partner type ----------------------------------
+-- 6) ---------------------------------- update sales partner type ----------------------------------
 select refer_type, broker_type, count(*) from tabsme_Sales_partner group by refer_type, broker_type ;
 update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null or refer_type = '5way';
 update tabsme_Sales_partner set broker_type = 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ' where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'); 
@@ -107,23 +108,47 @@ update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where
 update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
 
 
+-- 7) Assign person in charge for Sales partner of Resigned employees
+
+
+
+
+
+
+
+
+
+
 
 -- Check the number of introduce
-select sp.name, tmsp.no_of_all_introduce 
+select sp.name `id`, sp.refer_id `lms_broker_id` , tmsp.no_of_introduces `all_introduces`, tmsp3.no_of_introduces `3months_introduces`,
+	case when tmsp3.no_of_introduces >= 10 then 'Diamond'
+		when tmsp3.no_of_introduces >= 6 then 'Gold'
+		when tmsp3.no_of_introduces >= 3 then 'Silver'
+		when tmsp3.no_of_introduces >= 0 then 'Normal'
+		else 'Normal'
+	end `intro_rankings`,
+	case when tmsp3.no_of_introduces >= 10 then '4%'
+		when tmsp3.no_of_introduces >= 6 then '3.8%'
+		when tmsp3.no_of_introduces >= 3 then '3.36%'
+		when tmsp3.no_of_introduces >= 0 then '3.5%'
+		else '3.5%'
+	end `commission_rate`
 from tabsme_Sales_partner sp
-left join (select refer_id, count(*) as `no_of_all_introduce` from temp_sme_Sales_partner group by refer_id) tmsp on sp.refer_id = tmsp.refer_id
-where sp.refer_type = 'LMS_Broker'
-limit 10
+left join (select refer_id, count(*) as `no_of_introduces` from temp_sme_Sales_partner group by refer_id) tmsp on sp.refer_id = tmsp.refer_id
+left join (select refer_id, count(*) as `no_of_introduces` from temp_sme_Sales_partner where creation > DATE_ADD(LAST_DAY(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)), INTERVAL 1 DAY) group by refer_id) tmsp3 on sp.refer_id = tmsp3.refer_id
+where sp.refer_type = 'LMS_Broker';
+
+
+
+
+
+
+
+
 
 
 -- ______________________________________________________ End Do this every month ______________________________________________________
-
-
-
-
-
-
-
 
 
 
