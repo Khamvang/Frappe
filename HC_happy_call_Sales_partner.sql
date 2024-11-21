@@ -62,18 +62,8 @@ select * from temp_sme_Sales_partner;
 
 
 
--- 4) update the next key to make your form can add new record after you import data from tabSME_BO_and_Plan
 
-select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
-
-alter table tabsme_Sales_partner auto_increment= 581384 ; -- next id
-
-insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
-from sme_bo_and_plan_id_seq;
-
-
-
--- 5) Remove duplicate on tabsme_Sales_partner
+-- 4) Remove duplicate on tabsme_Sales_partner
 
 delete from tabsme_Sales_partner where name in (
 select `name` from ( 
@@ -85,7 +75,7 @@ where row_numbers > 1
 );
 
 
--- 6) Update the next id key
+-- 5) Update the next id key
 -- 1st method: to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
 alter table tabsme_Sales_partner auto_increment= 553306 ; -- next id
@@ -115,29 +105,6 @@ select distinct refer_type, broker_type from tabsme_Sales_partner ;
 select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
-
-
-
--- ---------------------------------- delete deplicate -----------------------------------
-delete from tabsme_Sales_partner where name in (
-
-select refer_type, broker_type, count(*) from tabsme_Sales_partner where name in (
-select `name` from ( 
-		select `name`, row_number() over (partition by `broker_tel` order by field(`refer_type`, "LMS_Broker", "tabSME_BO_and_Plan", "5way"), 
-			field(`broker_type`, "SP - ນາຍໜ້າໃນອາດີດ", "Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "5way - 5ສາຍພົວພັນ"), `name` asc) as row_numbers  
-		from tabsme_Sales_partner
-	) as t1
-where row_numbers > 1 
-) group by refer_type, broker_type ;
-
-delete from tabsme_Sales_partner where name in (
-select `name` from ( 
-		select `name`, row_number() over (partition by `broker_tel` order by field(`refer_type`, "LMS_Broker", "tabSME_BO_and_Plan", "5way"), 
-			field(`broker_type`, "SP - ນາຍໜ້າໃນອາດີດ", "Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "5way - 5ສາຍພົວພັນ"), `name` asc) as row_numbers  
-		from tabsme_Sales_partner
-	) as t1
-where row_numbers > 1 
-);
 
 
 
