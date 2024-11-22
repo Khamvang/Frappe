@@ -175,33 +175,52 @@ DROP TEMPORARY TABLE tmp_tabsme_Sales_partner;
 DROP TEMPORARY TABLE tmp_sme_org;
 
 -- __________________________________________________________________________________
--- Step 1: Calculate total rows in the first table and the second table
-SET @total_rows = (SELECT COUNT(*) FROM tabsme_Sales_partner WHERE refer_type = 'LMS_Broker');
-SET @num_staff = (SELECT COUNT(*) FROM sme_org 
-                  WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC'));
+-- Step 1: Calculate total rows in the first table (with conditions)
+SET @total_rows = (
+    SELECT COUNT(*)
+    FROM tabsme_Sales_partner sp
+    LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+    WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+);
+
+-- Count the total number of staff in sme_org that meet the specified conditions
+SET @num_staff = (
+    SELECT COUNT(*)
+    FROM sme_org
+    WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+-- Divide the total rows from the first table (tabsme_Sales_partner) by the number of staff, rounded up.
 SET @rows_per_staff = CEIL(@total_rows / @num_staff);
 
--- Step 2: Create a temporary table with row numbers for the second table
-CREATE TEMPORARY TABLE tmp_sme_org AS
-SELECT staff_no, ROW_NUMBER() OVER (ORDER BY id) AS row_num
-FROM sme_org
-WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
 
--- Step 3: Update the first table by redistributing rows more evenly
+-- Step 2: Create a temporary table with row numbers for the second table
+-- This remains unchanged. The temporary table (tmp_sme_org) assigns row numbers to the staff based on te.name.
+CREATE TEMPORARY TABLE tmp_sme_org AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.`rank` <= 49 AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+
+-- Step 3: Update only the relevant rows
+-- Now we use all the calculated variables (@total_rows, @num_staff, and @rows_per_staff) to update tabsme_Sales_partner. The rows are divided more evenly based on @rows_per_staff.
 UPDATE tabsme_Sales_partner sp
 JOIN (
     SELECT sp.name, sp.row_num AS first_row_num,
            ((sp.row_num - 1) DIV @rows_per_staff + 1) AS staff_group_row_num
     FROM (
         SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS row_num
-        FROM tabsme_Sales_partner
-        WHERE refer_type = 'LMS_Broker'
+        FROM tabsme_Sales_partner sp
+        LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+        WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
     ) sp
 ) sp_with_cycle ON sp.name = sp_with_cycle.name
 JOIN tmp_sme_org sme_cycle ON sp_with_cycle.staff_group_row_num = sme_cycle.row_num
-SET sp.current_staff = sme_cycle.staff_no;
+SET sp.current_staff = sme_cycle.staff_name;
 
 -- Step 4: Clean up temporary tables
+-- As before, we drop the temporary table once the update is done
 DROP TEMPORARY TABLE tmp_sme_org;
 
 
