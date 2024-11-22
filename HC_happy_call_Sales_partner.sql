@@ -118,7 +118,7 @@ select sp.name `id`, sp.refer_id `lms_broker_id`,
 	sme3.staff_no `modified_staff_no`, te3.name `modified_name`,
 	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
 		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
-		when sme3.staff_no is not null then te.name -- Last user who modified the sales partner on Frappe
+		when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
 		else sp.current_staff
 	end `current_staff`
 from tabsme_Sales_partner sp
@@ -144,7 +144,7 @@ left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 set sp.current_staff = 
 	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
 		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
-		when sme3.staff_no is not null then te.name -- Last user who modified the sales partner on Frappe
+		when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
 		else sp.current_staff
 	end,
 	sp.owner_staff = tmspd.owner_staff
