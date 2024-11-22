@@ -113,14 +113,13 @@ update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') wher
 -- checking
 /*
 select sp.name `id`, sp.refer_id `lms_broker_id`,
-	sp.current_staff `sp_current_staff`, 
-	sme.staff_no `sp_staff_no`, 
-	sp.owner_staff `sp_owner_staff`, 
-	tmspd.owner_staff `tmspd_owner_staff`,
-	sme2.staff_no `tmspd_staff_no`,
-	case when sme2.staff_no != '' then te2.name 
-		when sme.staff_no != '' then te.name
-		else null
+	sme2.staff_no `lms_staff_no`, te2.name `lms_name`,
+	sme.staff_no `current_staff_no`, te.name `current_name`,
+	sme3.staff_no `modified_staff_no`, te3.name `modified_name`,
+	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
+		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
+		when sme3.staff_no is not null then te.name -- Last user who modified the sales partner on Frappe
+		else sp.current_staff
 	end `current_staff`
 from tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
@@ -128,6 +127,8 @@ left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff
 left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
 left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
 left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
+left join tabsme_Employees te3 on (te3.email = sp.modified_by)
+left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 where sp.refer_type = 'LMS_Broker';
 */
 
@@ -138,9 +139,12 @@ left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff
 left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
 left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
 left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
+left join tabsme_Employees te3 on (te3.email = sp.modified_by)
+left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 set sp.current_staff = 
-	case when sme2.staff_no is null then te2.name 
-		when sme.staff_no is null then te.name
+	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
+		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
+		when sme3.staff_no is not null then te.name -- Last user who modified the sales partner on Frappe
 		else sp.current_staff
 	end,
 	sp.owner_staff = tmspd.owner_staff
