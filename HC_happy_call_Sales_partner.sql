@@ -110,7 +110,7 @@ update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') wher
 
 -- 7) Assign person in charge for Sales partner of Resigned employees
 
--- checking
+-- 7.1 checking
 /*
 select sp.name `id`, sp.refer_id `lms_broker_id`,
 	sme2.staff_no `lms_staff_no`, te2.name `lms_name`,
@@ -132,7 +132,7 @@ left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 where sp.refer_type = 'LMS_Broker';
 */
 
--- update
+-- 7.2 update
 update tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
@@ -151,8 +151,58 @@ set sp.current_staff =
 where sp.refer_type = 'LMS_Broker';
 
 
--- Export the list which is not active sales to assign again
+-- 7.3 Export the list which is not active sales to assign again
 
+-- Step 1: Create a temporary table for tabsme_Sales_partner with row numbers
+CREATE TEMPORARY TABLE tmp_tabsme_Sales_partner AS
+SELECT name, current_staff, ROW_NUMBER() OVER (ORDER BY name) AS row_num
+FROM tabsme_Sales_partner;
+
+-- Step 2: Create a temporary table for sme_org with row numbers
+CREATE TEMPORARY TABLE tmp_sme_org AS
+SELECT staff_no, ROW_NUMBER() OVER (ORDER BY id) AS row_num
+FROM sme_org
+WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Update tabsme_Sales_partner using the row numbers
+UPDATE tabsme_Sales_partner sp
+JOIN tmp_tabsme_Sales_partner tmp_sp ON sp.name = tmp_sp.name
+JOIN tmp_sme_org tmp_sme ON tmp_sp.row_num = tmp_sme.row_num
+SET sp.current_staff = tmp_sme.staff_no;
+
+-- Step 4: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_tabsme_Sales_partner;
+DROP TEMPORARY TABLE tmp_sme_org;
+
+-- __________________________________________________________________________________
+-- Step 1: Calculate total rows in the first table and the second table
+SET @total_rows = (SELECT COUNT(*) FROM tabsme_Sales_partner WHERE refer_type = 'LMS_Broker');
+SET @num_staff = (SELECT COUNT(*) FROM sme_org 
+                  WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC'));
+SET @rows_per_staff = CEIL(@total_rows / @num_staff);
+
+-- Step 2: Create a temporary table with row numbers for the second table
+CREATE TEMPORARY TABLE tmp_sme_org AS
+SELECT staff_no, ROW_NUMBER() OVER (ORDER BY id) AS row_num
+FROM sme_org
+WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Update the first table by redistributing rows more evenly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+    SELECT sp.name, sp.row_num AS first_row_num,
+           ((sp.row_num - 1) DIV @rows_per_staff + 1) AS staff_group_row_num
+    FROM (
+        SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS row_num
+        FROM tabsme_Sales_partner
+        WHERE refer_type = 'LMS_Broker'
+    ) sp
+) sp_with_cycle ON sp.name = sp_with_cycle.name
+JOIN tmp_sme_org sme_cycle ON sp_with_cycle.staff_group_row_num = sme_cycle.row_num
+SET sp.current_staff = sme_cycle.staff_no;
+
+-- Step 4: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_sme_org;
 
 
 
