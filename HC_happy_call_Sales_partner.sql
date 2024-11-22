@@ -96,7 +96,7 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 
--- 6) ---------------------------------- update sales partner type ----------------------------------
+-- 6) __________________________________________________________ update sales partner type __________________________________________________________
 select refer_type, broker_type, count(*) from tabsme_Sales_partner group by refer_type, broker_type ;
 update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສາຍພົວພັນ' where refer_type is null or refer_type = '5way';
 update tabsme_Sales_partner set broker_type = 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ' where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'); 
@@ -106,6 +106,8 @@ select distinct refer_type, broker_type from tabsme_Sales_partner ;
 select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
+
+
 
 
 -- 7) Assign person in charge for Sales partner of Resigned employees
@@ -151,31 +153,17 @@ set sp.current_staff =
 where sp.refer_type = 'LMS_Broker';
 
 
--- 7.3 Export the list which is not active sales to assign again
 
--- Step 1: Create a temporary table for tabsme_Sales_partner with row numbers
-CREATE TEMPORARY TABLE tmp_tabsme_Sales_partner AS
-SELECT name, current_staff, ROW_NUMBER() OVER (ORDER BY name) AS row_num
-FROM tabsme_Sales_partner;
 
--- Step 2: Create a temporary table for sme_org with row numbers
-CREATE TEMPORARY TABLE tmp_sme_org AS
-SELECT staff_no, ROW_NUMBER() OVER (ORDER BY id) AS row_num
-FROM sme_org
-WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+-- 7.3 Update the case which is not active sales to assign again
+-- Check how many cases
+SELECT sp.name, sp.current_staff, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+from tabsme_Sales_partner sp 
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+where sp.refer_type = 'LMS_Broker' and sme.id is null;
 
--- Step 3: Update tabsme_Sales_partner using the row numbers
-UPDATE tabsme_Sales_partner sp
-JOIN tmp_tabsme_Sales_partner tmp_sp ON sp.name = tmp_sp.name
-JOIN tmp_sme_org tmp_sme ON tmp_sp.row_num = tmp_sme.row_num
-SET sp.current_staff = tmp_sme.staff_no;
 
--- Step 4: Clean up temporary tables
-DROP TEMPORARY TABLE tmp_tabsme_Sales_partner;
-DROP TEMPORARY TABLE tmp_sme_org;
-
--- __________________________________________________________________________________
--- Step 1: Calculate total rows in the first table (with conditions)
+-- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
     SELECT COUNT(*)
     FROM tabsme_Sales_partner sp
@@ -183,45 +171,50 @@ SET @total_rows = (
     WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
 );
 
--- Count the total number of staff in sme_org that meet the specified conditions
 SET @num_staff = (
     SELECT COUNT(*)
-    FROM sme_org
-    WHERE `rank` <= 49 AND unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank <= 49 
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
 );
 
--- Divide the total rows from the first table (tabsme_Sales_partner) by the number of staff, rounded up.
-SET @rows_per_staff = CEIL(@total_rows / @num_staff);
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
 
-
--- Step 2: Create a temporary table with row numbers for the second table
--- This remains unchanged. The temporary table (tmp_sme_org) assigns row numbers to the staff based on te.name.
-CREATE TEMPORARY TABLE tmp_sme_org AS
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
 SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
 FROM sme_org sme
 LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
-WHERE sme.`rank` <= 49 AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+WHERE sme.rank <= 49 
+  AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
 
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL;
 
--- Step 3: Update only the relevant rows
--- Now we use all the calculated variables (@total_rows, @num_staff, and @rows_per_staff) to update tabsme_Sales_partner. The rows are divided more evenly based on @rows_per_staff.
+-- Step 4: Assign cases to staff fairly
 UPDATE tabsme_Sales_partner sp
 JOIN (
-    SELECT sp.name, sp.row_num AS first_row_num,
-           ((sp.row_num - 1) DIV @rows_per_staff + 1) AS staff_group_row_num
-    FROM (
-        SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS row_num
-        FROM tabsme_Sales_partner sp
-        LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
-        WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
-    ) sp
-) sp_with_cycle ON sp.name = sp_with_cycle.name
-JOIN tmp_sme_org sme_cycle ON sp_with_cycle.staff_group_row_num = sme_cycle.row_num
-SET sp.current_staff = sme_cycle.staff_name;
+    SELECT c.case_name, 
+           CASE
+               WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+                   MOD(c.row_num - 1, @num_staff) + 1
+               ELSE
+                   MOD(c.row_num - 1, @num_staff) + 1
+           END AS staff_row
+    FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
 
--- Step 4: Clean up temporary tables
--- As before, we drop the temporary table once the update is done
-DROP TEMPORARY TABLE tmp_sme_org;
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
 
 
 
