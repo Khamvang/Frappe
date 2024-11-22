@@ -162,6 +162,16 @@ from tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 where sp.refer_type = 'LMS_Broker' and sme.id is null;
 
+/*
+This query does the following:
+
+1. Calculates the total cases and eligible staff.
+2. Prepares temporary tables for staff and cases, assigning row numbers for fair distribution.
+3. Distributes cases fairly to staff using a round-robin approach with adjustments for extra cases.
+4. Updates the current_staff field in tabsme_Sales_partner with the assigned staff.
+5. Cleans up temporary tables.
+*/
+
 
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
