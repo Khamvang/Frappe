@@ -148,6 +148,8 @@ where sme.`unit_no` is not null;
 
 
 -- 6)  Prepare table temp_sme_pbx_BO, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_BO (One time per month)
+-- But abefore that need to check and correct data based on https://github.com/Khamvang/Frappe/blob/main/HC_happy_call_SABCF.sql
+
 select * from temp_sme_pbx_BO;
 
 
