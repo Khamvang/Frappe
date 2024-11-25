@@ -88,7 +88,7 @@ left join temp_dormant_and_existing `deage` on `deage`.id = (select id from temp
 ;
 
 
-
+-- 7) Export from 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc to 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` 
 
 
 
