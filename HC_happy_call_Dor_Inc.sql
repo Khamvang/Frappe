@@ -30,77 +30,65 @@ create table `temp_sme_calldata_Dor_Inc` (
 insert into temp_sme_calldata_Dor_Inc (`contract_no`)
 select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
 
+
 -- 3) Export data from Frappe 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` to 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc
 select * from temp_sme_calldata_Dor_Inc;
 
 
--- 4) Check data 
+-- 4) create temp table on 172.16.11.30/ sme_salesresult for reduce the data to updating
+CREATE TABLE `temp_dormant_and_existing` (
+	`id` int NOT NULL AUTO_INCREMENT,
+	`contract_no` int NOT NULL,
+	`neg_updated` date DEFAULT NULL,
+	`neg_with` varchar(255) DEFAULT NULL,
+	`visit_or_not` varchar(255) DEFAULT NULL,
+	`rank_after_visited` varchar(255) DEFAULT NULL,
+	`last_nego_staff_no` varchar(255) DEFAULT NULL,
+	`last_nego_name` varchar(255) DEFAULT NULL,
+	PRIMARY KEY (`id`),
+	KEY `idx_contract_no` (`contract_no`),
+	KEY `idx_neg_updated` (`neg_updated`),
+	KEY `idx_neg_with` (`neg_with`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+
+
+-- 5) insert data from dormant_and_existing to temp_dormant_and_existing
+replace into temp_dormant_and_existing
+SELECT id, contract_no, 
+	neg_updated, neg_with,
+	visit_or_not, rank_after_visited,
+	last_nego_staff_no, last_nego_name
+FROM dormant_and_existing
+WHERE str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01');
+
+
+-- 6) Check and update data
+replace into temp_sme_calldata_Dor_Inc
 select tsc.contract_no,
 	-- customer result
-	str_to_date(`decus`.neg_updated, '%Y-%m-%d') as `customer_neg_updated`,
+	`decus`.neg_updated as `customer_neg_updated`,
 	`decus`.visit_or_not as `customer_visited`,
 	SUBSTRING_INDEX(`decus`.rank_after_visited, ' ', 1) as `customer_rank`,
 	concat(`decus`.last_nego_staff_no, ' - ', `decus`.last_nego_name ) as `customer_nego_by`,
 	-- guarantor result
-	str_to_date(`degua`.neg_updated, '%Y-%m-%d') as `guarantor_neg_updated`,
+	`degua`.neg_updated as `guarantor_neg_updated`,
 	`degua`.visit_or_not as `guarantor_visited`,
 	SUBSTRING_INDEX(`degua`.rank_after_visited, ' ', 1) as `guarantor_rank`,
 	concat(`degua`.last_nego_staff_no, ' - ', `degua`.last_nego_name ) as `guarantor_nego_by`,
 	-- agent contact result
-	str_to_date(`deage`.neg_updated, '%Y-%m-%d') as `agent_contact_neg_updated`,
+	`deage`.neg_updated as `agent_contact_neg_updated`,
 	`deage`.visit_or_not as `agent_contact_visited`,
 	SUBSTRING_INDEX(`deage`.rank_after_visited, ' ', 1) as `agent_contact_rank`,
 	concat(`deage`.last_nego_staff_no, ' - ', `deage`.last_nego_name ) as `agent_contact_nego_by`
 from temp_sme_calldata_Dor_Inc tsc
-left join dormant_and_existing `decus` on `decus`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Customer' order by id desc limit 1)
-left join dormant_and_existing `degua` on `degua`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Guarantor' order by id desc limit 1)
-left join dormant_and_existing `deage` on `deage`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) not in ('Customer', 'Guarantor') order by id desc limit 1)
-limit 10;
-
-
--- 5) Update data, this need to set EVENT job to do auto update when data on table dormant_and_existing update 
-UPDATE temp_sme_calldata_Dor_Inc tsc
-LEFT JOIN dormant_and_existing `decus` 
-    ON `decus`.id = (
-        SELECT id 
-        FROM dormant_and_existing 
-        WHERE contract_no = tsc.contract_no 
-          AND STR_TO_DATE(neg_updated, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-01') 
-        ORDER BY id DESC 
-        LIMIT 1
-    )
-LEFT JOIN dormant_and_existing `degua` 
-    ON `degua`.id = (
-        SELECT id 
-        FROM dormant_and_existing 
-        WHERE contract_no = tsc.contract_no 
-          AND STR_TO_DATE(neg_updated, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-01') 
-        ORDER BY id DESC 
-        LIMIT 1
-    )
-LEFT JOIN dormant_and_existing `deage` 
-    ON `deage`.id = (
-        SELECT id 
-        FROM dormant_and_existing 
-        WHERE contract_no = tsc.contract_no 
-          AND STR_TO_DATE(neg_updated, '%Y-%m-%d') >= DATE_FORMAT(NOW(), '%Y-%m-01') 
-        ORDER BY id DESC 
-        LIMIT 1
-    )
-SET 
-    tsc.customer_neg_updated = STR_TO_DATE(`decus`.neg_updated, '%Y-%m-%d'),
-    tsc.customer_visited = `decus`.visit_or_not,
-    tsc.customer_rank = SUBSTRING_INDEX(`decus`.rank_after_visited, ' ', 1),
-    tsc.customer_nego_by = CONCAT(`decus`.last_nego_staff_no, ' - ', `decus`.last_nego_name),
-    tsc.guarantor_neg_updated = STR_TO_DATE(`degua`.neg_updated, '%Y-%m-%d'),
-    tsc.guarantor_visited = `degua`.visit_or_not,
-    tsc.guarantor_rank = SUBSTRING_INDEX(`degua`.rank_after_visited, ' ', 1),
-    tsc.guarantor_nego_by = CONCAT(`degua`.last_nego_staff_no, ' - ', `degua`.last_nego_name),
-    tsc.agent_contact_neg_updated = STR_TO_DATE(`deage`.neg_updated, '%Y-%m-%d'),
-    tsc.agent_contact_visited = `deage`.visit_or_not,
-    tsc.agent_contact_rank = SUBSTRING_INDEX(`deage`.rank_after_visited, ' ', 1),
-    tsc.agent_contact_nego_by = CONCAT(`deage`.last_nego_staff_no, ' - ', `deage`.last_nego_name)
+left join temp_dormant_and_existing `decus` on `decus`.id = (select id from temp_dormant_and_existing where contract_no = tsc.contract_no and neg_updated >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Customer' order by id desc limit 1)
+left join temp_dormant_and_existing `degua` on `degua`.id = (select id from temp_dormant_and_existing where contract_no = tsc.contract_no and neg_updated >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Guarantor' order by id desc limit 1)
+left join temp_dormant_and_existing `deage` on `deage`.id = (select id from temp_dormant_and_existing where contract_no = tsc.contract_no and neg_updated >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) not in ('Customer', 'Guarantor') order by id desc limit 1)
 ;
+
+
+
 
 
 
