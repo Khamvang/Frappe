@@ -96,6 +96,7 @@ select * from temp_sme_calldata_Dor_Inc;
 select apl.contract_no, 
 	sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.staff_no, sme.staff_name,
 	apl.approach_type,
+	apl.usd_loan_amount_old, apl.usd_now_amount ,
 	apl.customer_name, 
 	apl.address_province_and_city, apl.address_village,
 	concat('https://portal01.lalco.la:1901/salesresultreport_v3_dormant_view.php?contractid=', 'contract_id') `edit`,
