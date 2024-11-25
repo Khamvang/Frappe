@@ -89,7 +89,24 @@ left join temp_dormant_and_existing `deage` on `deage`.id = (select id from temp
 
 
 -- 7) Export from 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc to 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` 
+select * from temp_sme_calldata_Dor_Inc;
 
+
+-- 8) DOrmant export list https://docs.google.com/spreadsheets/d/1v0T5Sdwi5uQZAPgE0AoQ1H5uqDdm0cwDinxiWQUyjXc/edit?gid=1576431777#gid=1576431777
+select apl.contract_no, 
+	sme.dept, sme.sec_branch, sme.unit_no, sme.unit, sme.staff_no, sme.staff_name,
+	apl.approach_type,
+	apl.customer_name, 
+	apl.address_province_and_city, apl.address_village,
+	concat('https://portal01.lalco.la:1901/salesresultreport_v3_dormant_view.php?contractid=', 'contract_id') `edit`,
+	tsc.customer_neg_updated, tsc.customer_visited, tsc.customer_rank, null `customer_disburse_date`, tsc.customer_nego_by,
+	tsc.guarantor_neg_updated, tsc.guarantor_visited, tsc.guarantor_rank, null `guarantor_disburse_date`, tsc.guarantor_nego_by,
+	tsc.agent_contact_neg_updated, tsc.agent_contact_visited, tsc.agent_contact_rank, null `agent_contact_disburse_date`, tsc.agent_contact_nego_by 
+from tabSME_Approach_list apl 
+inner join temp_sme_calldata_Dor_Inc tsc on (apl.approach_id = tsc.contract_no)
+left join sme_org sme on (SUBSTRING_INDEX(apl.staff_no, ' -', 1) = sme.staff_no )
+where apl.approach_type = 'Dormant'
+order by sme.id asc;
 
 
 
