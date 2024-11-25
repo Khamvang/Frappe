@@ -52,9 +52,9 @@ select tsc.contract_no,
 	SUBSTRING_INDEX(`deage`.rank_after_visited, ' ', 1) as `agent_contact_rank`,
 	concat(`deage`.last_nego_staff_no, ' - ', `deage`.last_nego_name ) as `agent_contact_nego_by`
 from temp_sme_calldata_Dor_Inc tsc
-left join dormant_and_existing `decus` on `decus`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') order by id desc limit 1)
-left join dormant_and_existing `degua` on `degua`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') order by id desc limit 1)
-left join dormant_and_existing `deage` on `deage`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') order by id desc limit 1)
+left join dormant_and_existing `decus` on `decus`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Customer' order by id desc limit 1)
+left join dormant_and_existing `degua` on `degua`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) = 'Guarantor' order by id desc limit 1)
+left join dormant_and_existing `deage` on `deage`.id = (select id from dormant_and_existing where contract_no = tsc.contract_no and str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01') and SUBSTRING_INDEX(neg_with, ' -', 1) not in ('Customer', 'Guarantor') order by id desc limit 1)
 limit 10;
 
 
