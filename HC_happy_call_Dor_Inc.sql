@@ -106,6 +106,7 @@ from tabSME_Approach_list apl
 inner join temp_sme_calldata_Dor_Inc tsc on (apl.approach_id = tsc.contract_no)
 left join sme_org sme on (SUBSTRING_INDEX(apl.staff_no, ' -', 1) = sme.staff_no )
 where apl.approach_type = 'Dormant'
+-- where apl.approach_type = 'Existing'
 order by sme.id asc;
 
 
