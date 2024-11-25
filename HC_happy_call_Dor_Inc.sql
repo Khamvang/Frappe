@@ -8,7 +8,7 @@
 -- ______________________________________________________________________ Udpate call and visited result ______________________________________________________________________
 
 -- 1) Create table temp_calldata_Dor_Inc on Frappe 13.250.153.252/_8abac9eed59bf169 and server 172.16.11.30/ sme_salesresult
-create table `temp_calldata_Dor_Inc` (
+create table `temp_sme_calldata_Dor_Inc` (
 	`contract_no` int(11) not null auto_increment,
 	`customer_neg_updated` date default null,
 	`customer_visited` varchar(255) default null,
@@ -26,7 +26,13 @@ create table `temp_calldata_Dor_Inc` (
 )ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
--- 2) 
+-- 2) Insert data from table `tabSME_Approach_list` to `temp_sme_calldata_Dor_Inc`
+insert into temp_sme_calldata_Dor_Inc (`contract_no`)
+select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
+
+-- 3) Export data from Frappe 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` to 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc
+select * from temp_sme_calldata_Dor_Inc;
+
 
 
 
