@@ -5,6 +5,32 @@
 -- 2) Existing customer list TO Frappe: https://docs.google.com/spreadsheets/d/1d5FKQmqZSWNg_b2W4x4g14WGE6bp0vVS4APR3SzdUhg/edit?gid=0#gid=0
 
 
+-- ______________________________________________________________________ Udpate call and visited result ______________________________________________________________________
+
+-- 1) Create table temp_calldata_Dor_Inc on Frappe 13.250.153.252/_8abac9eed59bf169 and server 172.16.11.30/ sme_salesresult
+create table `temp_calldata_Dor_Inc` (
+	`contract_no` int(11) not null auto_increment,
+	`customer_neg_updated` date default null,
+	`customer_visited` varchar(255) default null,
+	`customer_rank` varchar(255) default null,
+	`customer_nego_by` varchar(255) default null,
+	`guarantor_neg_updated` date default null,
+	`guarantor_visited` varchar(255) default null,
+	`guarantor_rank` varchar(255) default null,
+	`guarantor_nego_by` varchar(255) default null,
+	`agent_contact_neg_updated` date default null,
+	`agent_contact_visited` varchar(255) default null,
+	`agent_contact_rank` varchar(255) default null,
+	`agent_contact_nego_by` varchar(255) default null,
+	primary key (`contract_no`)
+)ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+
+-- 2) 
+
+
+
+
 
 -- ______________________________________________________________________ Export list for Non-sales ______________________________________________________________________
 -- Dormant list for Non-sales
