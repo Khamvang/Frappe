@@ -26,16 +26,7 @@ create table `temp_sme_calldata_Dor_Inc` (
 )ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
--- 2) Insert data from table `tabSME_Approach_list` to `temp_sme_calldata_Dor_Inc`
-replace into temp_sme_calldata_Dor_Inc (`contract_no`)
-select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
-
-
--- 3) Export data from Frappe 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` to 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc
-select * from temp_sme_calldata_Dor_Inc;
-
-
--- 4) create temp table on 172.16.11.30/ sme_salesresult for reduce the data to updating
+-- 2) create temp table on 172.16.11.30/ sme_salesresult for reduce the data to updating
 CREATE TABLE `temp_dormant_and_existing` (
 	`id` int NOT NULL AUTO_INCREMENT,
 	`contract_no` int NOT NULL,
@@ -52,8 +43,16 @@ CREATE TABLE `temp_dormant_and_existing` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
+-- 3) Insert data from table `tabSME_Approach_list` to `temp_sme_calldata_Dor_Inc`
+replace into temp_sme_calldata_Dor_Inc (`contract_no`)
+select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
 
--- 5) insert data from dormant_and_existing to temp_dormant_and_existing
+
+-- 4) Export data from Frappe 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` to 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc
+select * from temp_sme_calldata_Dor_Inc;
+
+
+-- 5) insert data from dormant_and_existing to temp_dormant_and_existing in 172.16.11.30/ sme_salesresult
 replace into temp_dormant_and_existing
 SELECT id, contract_no, 
 	neg_updated, neg_with,
@@ -63,7 +62,7 @@ FROM dormant_and_existing
 WHERE str_to_date(neg_updated, '%Y-%m-%d') >= date_format(now(), '%Y-%m-01');
 
 
--- 6) Check and update data
+-- 6) Check and update data in 172.16.11.30/ sme_salesresult
 replace into temp_sme_calldata_Dor_Inc
 select tsc.contract_no,
 	-- customer result
