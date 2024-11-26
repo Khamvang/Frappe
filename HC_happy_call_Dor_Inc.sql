@@ -99,12 +99,13 @@ select apl.contract_no,
 	apl.customer_name, 
 	apl.address_province_and_city, apl.address_village,
 	concat('https://portal01.lalco.la:1901/salesresultreport_v3_dormant_view.php?contractid=', contract_id) `edit`,
-	tsc.customer_neg_updated, tsc.customer_visited, tsc.customer_rank, null as `customer_pbx`, null `customer_disburse_date`, tsc.customer_nego_by,
-	tsc.guarantor_neg_updated, tsc.guarantor_visited, tsc.guarantor_rank, null as `customer_pbx`, null `guarantor_disburse_date`, tsc.guarantor_nego_by,
-	tsc.agent_contact_neg_updated, tsc.agent_contact_visited, tsc.agent_contact_rank, null as `customer_pbx`, null `agent_contact_disburse_date`, tsc.agent_contact_nego_by 
+	tsc.customer_neg_updated, tsc.customer_visited, tsc.customer_rank, tsdi.pbx_status as `customer_pbx`, null `customer_disburse_date`, tsc.customer_nego_by,
+	tsc.guarantor_neg_updated, tsc.guarantor_visited, tsc.guarantor_rank, null as `gurantor_pbx`, null `guarantor_disburse_date`, tsc.guarantor_nego_by,
+	tsc.agent_contact_neg_updated, tsc.agent_contact_visited, tsc.agent_contact_rank, null as `agent_contact_pbx`, null `agent_contact_disburse_date`, tsc.agent_contact_nego_by 
 from tabSME_Approach_list apl 
 inner join temp_sme_calldata_Dor_Inc tsc on (apl.approach_id = tsc.contract_no)
 left join sme_org sme on (SUBSTRING_INDEX(apl.staff_no, ' -', 1) = sme.staff_no )
+left join temp_sme_dor_inc tsdi on (apl.approach_id = tsdi.contract_no)
 where apl.approach_type = 'Dormant'
 -- where apl.approach_type = 'Existing'
 order by sme.id asc;
