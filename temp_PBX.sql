@@ -80,9 +80,14 @@ delete from pbx_unique where id in (
 
 
 -- 4) Prepare table temp_sme_dor_inc, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_dor_inc (One time per month)
+replace into temp_sme_dor_inc
 select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff` 
 from tabSME_Approach_list 
 where approach_type in ('Dormant', 'Existing');
+
+
+-- Export to server locahost database lalco_pbx table temp_sme_dor_inc
+select * from temp_sme_dor_inc;
 
 
 /* 
@@ -107,31 +112,31 @@ where sme.`unit_no` is not null;
 -- 6)  Prepare table temp_sme_pbx_BO, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_BO (One time per month)
 -- Please correct temp_sme_pbx_BO based on this query https://github.com/Khamvang/Frappe/blob/main/HC_happy_call_SABCF.sql
 	
-select * from temp_sme_pbx_BO;
+select * from temp_sme_pbx_BO 
 
 
--- Past SABCF
+-- Past SABCF, run this query on server locahost database lalco_pbx
 -- 7) update
 update temp_sme_pbx_bo ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
 set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
 
 -- 8) export to frappe 
-select * from temp_sme_pbx_bo;
+select * from temp_sme_pbx_bo where date >= date_add(date(now()), interval - 2 day);
 
 
 
--- Sales partner
+-- Sales partner, run this query on server locahost database lalco_pbx
 -- 9) update
 update temp_sme_pbx_sp ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
 set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
 
 
--- 10) export to frappe 
-select * from temp_sme_pbx_sp;
+-- 10) export to frappe, run this query on server locahost database lalco_pbx
+select * from temp_sme_pbx_sp where date >= date_add(date(now()), interval - 2 day);
 
 
 
--- Dormant and Existing
+-- Dormant and Existing, run this query on server locahost database lalco_pbx
 -- 11) update Dor and Inc
 update temp_sme_dor_inc set customer_tel = 
 	case when customer_tel = '' then ''
@@ -152,13 +157,13 @@ update temp_sme_dor_inc set customer_tel =
 
 
 
--- 12) update
+-- 12) update, run this query on server locahost database lalco_pbx
 update temp_sme_dor_inc tdi join pbx_unique pu on (tdi.customer_tel = pu.contact_no)
 set tdi.pbx_status = pu.status, tdi.`date` = pu.date_created 
 
 
--- 13) export to HC Dor and Inc > Sheet PBX
-select * from temp_sme_dor_inc tdi 
+-- 13) export back to Frappe, run this query on server locahost database lalco_pbx
+select * from temp_sme_dor_inc where date >= date_add(date(now()), interval - 2 day);
 
 
 
