@@ -18,7 +18,7 @@ create table `temp_sme_calldata_Dor_Inc` (
 	`guarantor_visited` varchar(255) default null,
 	`guarantor_rank` varchar(255) default null,
 	`guarantor_nego_by` varchar(255) default null,
-	`agent_contact_neg_updated` date default null,
+	`agent_contact_neg_updated` date default null, 
 	`agent_contact_visited` varchar(255) default null,
 	`agent_contact_rank` varchar(255) default null,
 	`agent_contact_nego_by` varchar(255) default null,
