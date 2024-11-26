@@ -99,7 +99,7 @@ select apl.contract_no,
 	apl.usd_loan_amount_old, apl.usd_now_amount ,
 	apl.customer_name, 
 	apl.address_province_and_city, apl.address_village,
-	concat('https://portal01.lalco.la:1901/salesresultreport_v3_dormant_view.php?contractid=', 'contract_id') `edit`,
+	concat('https://portal01.lalco.la:1901/salesresultreport_v3_dormant_view.php?contractid=', contract_id) `edit`,
 	tsc.customer_neg_updated, tsc.customer_visited, tsc.customer_rank, null as `customer_pbx`, null `customer_disburse_date`, tsc.customer_nego_by,
 	tsc.guarantor_neg_updated, tsc.guarantor_visited, tsc.guarantor_rank, null as `customer_pbx`, null `guarantor_disburse_date`, tsc.guarantor_nego_by,
 	tsc.agent_contact_neg_updated, tsc.agent_contact_visited, tsc.agent_contact_rank, null as `customer_pbx`, null `agent_contact_disburse_date`, tsc.agent_contact_nego_by 
