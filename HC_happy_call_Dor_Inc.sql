@@ -87,8 +87,12 @@ left join temp_dormant_and_existing `deage` on `deage`.id = (select id from temp
 ;
 
 
--- 7) Export from Server 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc to Server 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc` 
-select * from temp_sme_calldata_Dor_Inc;
+-- 7) Export from Server 172.16.11.30/ sme_salesresult/temp_sme_calldata_Dor_Inc to Server 13.250.153.252/_8abac9eed59bf169/`temp_sme_calldata_Dor_Inc`
+select * from temp_sme_calldata_Dor_Inc
+where customer_neg_updated >= date_add(date(now()), interval - 2 day)
+	or guarantor_neg_updated >= date_add(date(now()), interval - 2 day)
+	or agent_contact_neg_updated >= date_add(date(now()), interval - 2 day)
+;
 
 
 -- 8) Dormant export list on Server 13.250.153.252/_8abac9eed59bf169 to https://docs.google.com/spreadsheets/d/1v0T5Sdwi5uQZAPgE0AoQ1H5uqDdm0cwDinxiWQUyjXc/edit?gid=1576431777#gid=1576431777
