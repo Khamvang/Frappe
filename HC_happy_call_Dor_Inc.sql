@@ -4,6 +4,12 @@
 
 -- 2) Existing customer list TO Frappe: https://docs.google.com/spreadsheets/d/1d5FKQmqZSWNg_b2W4x4g14WGE6bp0vVS4APR3SzdUhg/edit?gid=0#gid=0
 
+-- 3) Delete the old data before import, Do this for the 1st time in every month
+select * from tabSME_Approach_list where approach_type  in ('Dormant', 'Existing');
+
+delete from tabSME_Approach_list where approach_type  in ('Dormant', 'Existing');
+
+
 
 -- ______________________________________________________________________ Udpate call and visited result ______________________________________________________________________
 
