@@ -41,7 +41,11 @@ where ( (bp.rank1 in ('F') and bp.rank_update not in ('FFF') )
 
 
 -- 6) Export data to allocate the cases of resigned employees to current employees
-select tb.* , bp.usd_loan_amount, 
+select tb.* , bp.usd_loan_amount,
+	case when bp.usd_loan_amount >= 10000 then '①over $10,000'
+		when bp.usd_loan_amount >= 5000 then '②over $5,000'
+		when bp.usd_loan_amount < 5000 then '③less than $5,000'
+	end `usd_loan_amount_type`,
 	case when sme.dept is null then 'Resigned' when sme2.dept is null then 'Resigned'
 		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
@@ -65,8 +69,7 @@ order by sme.id asc;
 update tabSME_BO_and_Plan bp inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
 set bp.staff_no = tb.current_staff ;
 
-
-
+-- 10)
 
 
 
