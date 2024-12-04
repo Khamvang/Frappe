@@ -4,11 +4,16 @@
 
 -- 2) Existing customer list TO Frappe: https://docs.google.com/spreadsheets/d/1d5FKQmqZSWNg_b2W4x4g14WGE6bp0vVS4APR3SzdUhg/edit?gid=0#gid=0
 
--- 3) Delete the old data before import, Do this for the 1st time in every month
+-- 3)  Prepare csv file to database 
+
+
+-- 4) Delete the old data before import, Do this for the 1st time in every month
 select * from tabSME_Approach_list where approach_type  in ('Dormant', 'Existing');
 
 delete from tabSME_Approach_list where approach_type  in ('Dormant', 'Existing');
 
+
+-- 5) Import new data of Dormant and Existing to database
 
 
 -- ______________________________________________________________________ Udpate call and visited result ______________________________________________________________________
@@ -49,6 +54,7 @@ CREATE TABLE `temp_dormant_and_existing` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
+-- Run on server frappe 13.250.153.252
 -- 3) Insert data from table `tabSME_Approach_list` to `temp_sme_calldata_Dor_Inc` on Frappe 13.250.153.252/_8abac9eed59bf169
 replace into temp_sme_calldata_Dor_Inc (`contract_no`)
 select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
@@ -58,6 +64,8 @@ select approach_id `contract_no` from tabSME_Approach_list where approach_type i
 select * from temp_sme_calldata_Dor_Inc;
 
 
+
+-- Run on server: sme_salesresult 172.16.11.30
 -- 5) insert data from dormant_and_existing to temp_dormant_and_existing on 172.16.11.30/ sme_salesresult
 replace into temp_dormant_and_existing
 SELECT id, contract_no, 
@@ -120,6 +128,9 @@ left join temp_sme_dor_inc tsdi on (apl.approach_id = tsdi.contract_no)
 where apl.approach_type = 'Dormant'
 -- where apl.approach_type = 'Existing'
 order by sme.id asc;
+
+
+
 
 
 
