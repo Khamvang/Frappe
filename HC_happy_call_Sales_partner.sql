@@ -232,8 +232,16 @@ DROP TEMPORARY TABLE tmp_cases;
 
 
 
+-- 8) Prepare table temp_sme_pbx_sp, run this query on frappe server 13.250.153.252
+replace into temp_sme_pbx_SP
+select sp.name `id`, sp.broker_tel, null `pbx_status`, null `date`, sp.current_staff 
+from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+where sme.`unit_no` is not null;
 
--- 8) Check the number of introduce
+
+
+
+-- 9) Check the number of introduce
 select sp.name `id`, sp.refer_id `lms_broker_id` , tmsp.no_of_introduces `all_introduces`, tmsp3.no_of_introduces `3months_introduces`,
 	case when tmsp3.no_of_introduces >= 10 then 'Diamond'
 		when tmsp3.no_of_introduces >= 6 then 'Gold'
