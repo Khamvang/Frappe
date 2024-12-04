@@ -25,7 +25,7 @@ CREATE TABLE `temp_sme_Sales_partner` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
-
+-- Run on server: lalco 18.140.117.112
 -- 2) export from LMS to Frappe on table name temp_sme_Sales_partner 
 select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null `modified`, 'Administrator' `owner`, null `current_staff`, 
 	upper(case when u2.nickname = 'Mee' then concat(u.staff_no, ' - ', u.nickname) 
@@ -54,12 +54,13 @@ order by c.contract_no desc;
 
 
 
-
+-- Run on server: frappe 13.250.153.252
 -- 3) insert data to tabsme_Sales_partner from temp_sme_Sales_partner
 
 insert into tabsme_Sales_partner 
 	(contract_no, creation, modified, owner, current_staff, owner_staff, broker_type, broker_name, broker_tel, address_province_and_city, address_village, broker_workplace, business_type, ever_introduced, rank, refer_id, refer_type)
-select * from temp_sme_Sales_partner;
+select contract_no, creation, modified, owner, current_staff, owner_staff, broker_type, broker_name, broker_tel, address_province_and_city, address_village, broker_workplace, business_type, ever_introduced, rank, refer_id, refer_type
+from temp_sme_Sales_partner;
 
 
 
@@ -77,11 +78,13 @@ where row_numbers > 1
 
 
 -- 5) Update the next id key
+/*
 -- 1st method: to make your form can add new record after you import data from tabSME_BO_and_Plan
 select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner;
 alter table tabsme_Sales_partner auto_increment= 553306 ; -- next id
 insert into sme_sales_partner_id_seq select (select max(name)+1 `next_not_cached_value` from tabsme_Sales_partner), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
 from sme_bo_and_plan_id_seq;
+*/
 
 -- 2nd method: 
 -- Step 1: Get the next AUTO_INCREMENT value
@@ -102,11 +105,11 @@ update tabsme_Sales_partner set refer_type = '5way', broker_type = '5way - 5ສ�
 update tabsme_Sales_partner set broker_type = 'X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ' where refer_type = 'tabSME_BO_and_Plan' and broker_type not in ('Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ', 'Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ'); 
 select distinct refer_type, broker_type from tabsme_Sales_partner ;
 
-
+/*
 select * from tabsme_Sales_partner where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set send_wa = 'No-ສົ່ງບໍໄດ້' where send_wa = '' or send_wa is null;
 update tabsme_Sales_partner set wa_date = date_format(modified, '%Y-%m-%d') where send_wa != '' and modified >= '2024-07-01' ;
-
+*/
 
 
 
