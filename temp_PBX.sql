@@ -78,7 +78,7 @@ delete from pbx_unique where id in (
 );
 
 
-
+-- _________________________ Dormant & Existing _________________________
 -- 4) Prepare table temp_sme_dor_inc, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_dor_inc (One time per month)
 replace into temp_sme_dor_inc
 select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff` 
@@ -102,19 +102,22 @@ delete from tabSME_Approach_list where name in (
 */
 
 
+-- _________________________ SP Sales partner _________________________
 -- 5) Prepare table temp_sme_pbx_sp, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_sp (One time per month)
 select sp.name `id`, sp.broker_tel, null `pbx_status`, null `date`, sp.current_staff 
 from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
 where sme.`unit_no` is not null;
 
 
-
+-- _________________________ SABCF _________________________
 -- 6)  Prepare table temp_sme_pbx_BO, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_pbx_BO (One time per month)
 -- Please correct temp_sme_pbx_BO based on this query https://github.com/Khamvang/Frappe/blob/main/HC_happy_call_SABCF.sql
 	
 select * from temp_sme_pbx_BO 
 
 
+
+-- ____________________________________________ Run on locahost PBX server ____________________________________________
 -- Past SABCF, run this query on server locahost database lalco_pbx
 -- 7) update
 update temp_sme_pbx_bo ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
