@@ -56,6 +56,9 @@ CREATE TABLE `temp_dormant_and_existing` (
 
 -- Run on server frappe 13.250.153.252
 -- 3) Insert data from table `tabSME_Approach_list` to `temp_sme_calldata_Dor_Inc` on Frappe 13.250.153.252/_8abac9eed59bf169
+
+TRUNCATE temp_sme_calldata_Dor_Inc;
+
 replace into temp_sme_calldata_Dor_Inc (`contract_no`)
 select approach_id `contract_no` from tabSME_Approach_list where approach_type in ('Dormant', 'Existing');
 
