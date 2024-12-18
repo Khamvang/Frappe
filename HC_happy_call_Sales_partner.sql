@@ -39,7 +39,7 @@ select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null
 	end `broker_tel`,
 	concat(left(pr.province_name, locate('-', pr.province_name)-2), ' - ', ci.city_name) `address_province_and_city`, 
 	convert(cast(convert(vi.village_name_lao using latin1) as binary) using utf8) `address_village`, null `broker_workplace`, 
-	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, c.contract_no, null `rank`, b.id `refer_id`, 'LMS_Broker' `refer_type`,
+	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, c.contract_no, '' as `rank`, b.id `refer_id`, 'LMS_Broker' `refer_type`,
 	CASE p.contract_type WHEN 1 THEN 'SME Car' WHEN 2 THEN 'SME Bike' WHEN 3 THEN 'Car Leasing' WHEN 4 THEN 'Bike Leasing' when 5 then 'Real estate' END `contract_type`
 from tblcontract c left join tblprospect p on (p.id = c.prospect_id)
 left join tblbroker b on (b.id = p.broker_id)
