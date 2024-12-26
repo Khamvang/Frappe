@@ -18,6 +18,8 @@ create table `sme_pre_daily_report` (
 
 
 -- 2 create EVENT to insert data to the table sme_pre_daily_report
+-- Run this in command line  >> mysql -u mahesh -pmahesh@Secret1 -h 13.250.153.252 --port 3306
+
 
 DELIMITER $$
 
