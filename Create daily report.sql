@@ -19,37 +19,60 @@ create table `sme_pre_daily_report` (
 
 -- 2 create EVENT to insert data to the table sme_pre_daily_report
 
--- 2.1 delete old data, if exist today report before insert new data
-CREATE EVENT IF NOT EXISTS `delete_sme_pre_daily_report`
+DELIMITER $$
+
+CREATE EVENT refresh_sme_pre_daily_report
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 20:00:00'
+STARTS '2024-08-23 23:00:00'
 DO
-	delete from sme_pre_daily_report where date_report = date(now());
+BEGIN
+    -- Step 1: Delete old data for today's report
+    DELETE FROM sme_pre_daily_report
+    WHERE date_report = DATE(NOW());
 
+    -- Step 2: Insert new data into the report table
+    INSERT INTO `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`)
+    SELECT
+        DATE(NOW()) AS `date_report`,
+        bp.name AS `bp_name`,
+        bp.`rank_update`,
+        CASE
+            WHEN bp.contract_status = 'Contracted' THEN 'Contracted'
+            WHEN bp.contract_status = 'Cancelled' THEN 'Cancelled'
+            ELSE bp.rank_update
+        END AS `now_result`,
+        CASE
+            WHEN rank_update IN ('S','A','B','C') THEN 1
+            ELSE 0
+        END AS `rank_update_SABC`,
+        bp.`visit_or_not`,
+        bp.`ringi_status`,
+        bp.`disbursement_date_pay_date`
+    FROM
+        tabSME_BO_and_Plan bp
+    LEFT JOIN
+        sme_org sme ON (CASE
+            WHEN LOCATE(' ', bp.staff_no) = 0 THEN bp.staff_no
+            ELSE LEFT(bp.staff_no, LOCATE(' ', bp.staff_no) - 1)
+        END = sme.staff_no)
+    LEFT JOIN
+        sme_org smec ON (REGEXP_REPLACE(bp.callcenter_of_sales, '[^[:digit:]]', '') = smec.staff_no)
+    WHERE
+        rank_update IN ('S','A','B','C','F')
+        AND bp.contract_status != 'Contracted'
+        AND bp.contract_status != 'Cancelled'
+        AND bp.`type` IN ('New', 'Dor', 'Inc')
+        AND CASE
+            WHEN bp.callcenter_of_sales IS NULL OR bp.callcenter_of_sales = ''
+            THEN sme.unit_no
+            ELSE smec.unit_no
+        END IS NOT NULL
+    ORDER BY
+        sme.id ASC;
+END$$
 
+DELIMITER ;
 
--- 2.2 Insert new data to table before report
-CREATE EVENT IF NOT EXISTS `insert_to_sme_pre_daily_report`
-ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 20:05:00'
-DO
-	insert into `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`)
-	select date(now()) `date_report`,
-		bp.name `bp_name`, 
-		bp.`rank_update` , 
-		case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `now_result`,
-		case when rank_update in ('S','A','B','C') then 1 else 0 end `rank_update_SABC`,
-		bp.`visit_or_not` ,
-		bp.`ringi_status` ,
-		bp.`disbursement_date_pay_date` 
-	from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
-	left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
-	where rank_update in ('S','A','B','C','F') 
-		and bp.contract_status != 'Contracted' -- if contracted then not need
-		and bp.contract_status != 'Cancelled' -- if cencalled then not need
-		and bp.`type` in ('New', 'Dor', 'Inc') -- new only 3 products
-		and case when bp.callcenter_of_sales is null or bp.callcenter_of_sales = '' then sme.unit_no else smec.unit_no end is not null -- if resigned staff no need
-	order by sme.id asc;
 
 
 
