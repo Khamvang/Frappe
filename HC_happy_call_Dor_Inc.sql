@@ -16,6 +16,53 @@ delete from tabSME_Approach_list where approach_type  in ('Dormant', 'Existing')
 -- 5) Import new data of Dormant and Existing to database
 
 
+-- 6) Dormant Contract Allocation to 
+-- Details: https://chatgpt.com/share/676cb886-bd30-8006-90c9-d989176a15c1
+
+WITH case_data AS (
+    -- Row numbers for cases
+    SELECT contract_no, unit_no, unit, ROW_NUMBER() OVER (PARTITION BY unit_no ORDER BY contract_no) AS case_row
+    FROM (
+        SELECT apl.contract_no, sme.unit_no, sme.unit
+        FROM tabSME_Approach_list apl 
+        INNER JOIN temp_sme_calldata_Dor_Inc tsc ON (apl.approach_id = tsc.contract_no)
+        LEFT JOIN sme_org sme ON (SUBSTRING_INDEX(apl.staff_no, ' -', 1) = sme.staff_no)
+        WHERE apl.approach_type = 'Dormant' AND unit_no != ''
+         -- AND apl.contract_no IN ()
+    ) sub
+),
+staff_data AS (
+    -- Row numbers for staff
+    SELECT sme.unit_no, sme.unit, sme.staff_no, te.name, ROW_NUMBER() OVER (PARTITION BY sme.unit_no ORDER BY sme.staff_no) AS staff_row
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank BETWEEN 70 AND 79
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+),
+unit_staff_counts AS (
+    -- Total staff per unit (replaces the missing `staff_count` table)
+    SELECT sme.unit_no, COUNT(*) AS total_staff
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank BETWEEN 70 AND 79
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+    GROUP BY sme.unit_no
+),
+distribution AS (
+    -- Map cases to staff
+    SELECT c.contract_no, c.unit_no, c.unit, s.staff_no, s.name AS assigned_staff
+    FROM case_data c JOIN staff_data s ON c.unit_no = s.unit_no
+     AND ((c.case_row - 1) % (
+         SELECT usc.total_staff FROM unit_staff_counts usc WHERE usc.unit_no = c.unit_no
+     )) + 1 = s.staff_row
+)
+SELECT *
+FROM distribution;
+
+
+
+
+
 -- ______________________________________________________________________ Udpate call and visited result ______________________________________________________________________
 
 -- 1) Create table temp_calldata_Dor_Inc on Frappe 13.250.153.252/_8abac9eed59bf169 and server 172.16.11.30/ sme_salesresult
@@ -132,10 +179,6 @@ where apl.approach_type = 'Dormant'
 -- where apl.approach_type = 'Existing'
 order by sme.id asc;
 
-
-
--- Dormant Contract Allocation
-https://chatgpt.com/share/676cb886-bd30-8006-90c9-d989176a15c1
 
 
 
