@@ -134,6 +134,9 @@ order by sme.id asc;
 
 
 
+-- Dormant Contract Allocation
+https://chatgpt.com/share/676cb886-bd30-8006-90c9-d989176a15c1
+
 
 
 
