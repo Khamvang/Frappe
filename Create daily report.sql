@@ -78,15 +78,15 @@ DELIMITER ;
 
 
 
--- 3) 
- Show Events
+-- 3)  Show Events
 SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;
 
+SELECT * FROM information_schema.EVENTS WHERE EVENT_NAME = 'refresh_sme_pre_daily_report';
 
 
--- 4) Show details of Events
-SELECT * FROM information_schema.EVENTS
-WHERE EVENT_NAME = 'refresh_sme_pre_daily_report'
+
+-- 4) manually execute the event before its scheduled time by using the following SQL
+EXECUTE EVENT `refresh_sme_pre_daily_report`;
 
 
 
