@@ -78,26 +78,16 @@ DELIMITER ;
 
 
 
--- 3) Indexing and Performance: If you're running this event daily, make sure that sme_org and tabSME_BO_and_Plan are indexed properly on columns like staff_no and contract_status for performance optimization.
--- Create index on staff_no in sme_org table
-CREATE INDEX idx_sme_org_staff_no ON sme_org(staff_no);
-
--- Create index on staff_no in tabSME_BO_and_Plan table
-CREATE INDEX idx_tabSME_BO_and_Plan_staff_no ON tabSME_BO_and_Plan(staff_no);
-
--- Create index on contract_status in tabSME_BO_and_Plan table
-CREATE INDEX idx_tabSME_BO_and_Plan_contract_status ON tabSME_BO_and_Plan(contract_status);
-
--- Create index on callcenter_of_sales in tabSME_BO_and_Plan table
-CREATE INDEX idx_tabSME_BO_and_Plan_callcenter_of_sales ON tabSME_BO_and_Plan(callcenter_of_sales);
-
--- Optional: Composite index on rank_update and contract_status (if frequently used together in WHERE clauses)
-CREATE INDEX idx_tabSME_BO_and_Plan_rank_contract ON tabSME_BO_and_Plan(rank_update, contract_status);
-
-
-
--- 4) Show Events
+-- 3) 
+ Show Events
 SELECT * FROM information_schema.EVENTS WHERE EVENT_SCHEMA = '_8abac9eed59bf169' order by STARTS ;
+
+
+
+-- 4) Show details of Events
+SELECT * FROM information_schema.EVENTS
+WHERE EVENT_NAME = 'refresh_sme_pre_daily_report'
+
 
 
 -- 5) Drop the Existing Event
