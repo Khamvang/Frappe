@@ -146,8 +146,13 @@ WHERE management_type = 'SABC Cancelled in 3 months ago';
 SELECT te.name, sme.*
 FROM sme_org sme
 LEFT JOIN tabsme_Employees te ON (sme.staff_no = te.staff_no)
--- WHERE sme.`rank` <= 59 -- Z5:Z<=19,"G-Dept", Z5:Z<=29,"Dept", Z5:Z<=39,"Sec", Z5:Z<=49,"UL", Z5:Z<=59,"Mini UL", Z5:Z<=69,"TL", Z5:Z<=79,"Sales", TRUE,"CC"
-WHERE sme.`rank` <= 69
+-- rank condition: Z5:Z<=19,"G-Dept", Z5:Z<=29,"Dept", Z5:Z<=39,"Sec", Z5:Z<=49,"UL", Z5:Z<=59,"Mini UL", Z5:Z<=69,"TL", Z5:Z<=79,"Sales", TRUE,"CC"
+WHERE sme.`rank` BETWEEN 0 AND 49 -- for UL and above
+-- WHERE sme.`rank` BETWEEN 50 AND 59 -- for Mini
+-- WHERE sme.`rank` BETWEEN 60 AND 69 -- for TL
+-- WHERE sme.`rank` BETWEEN 70 AND 79 -- for Sales
+-- WHERE sme.`rank` >= 80 -- for CC
+	AND sme.retirement_date IS NULL AND te.name IS NOT NULL 
 	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
 ORDER BY sme.id ASC;
 
