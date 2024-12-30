@@ -37,50 +37,19 @@ where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 
 
 
--- 3) F created in 4-5-6 months ago -- CC   RANK F  ໂທ 4-5-6 ເດືອນ ຍ້ອນຫລັງ 
+-- 3) SABC loan amount over 10,000 -- 4.	UNIT ແມ່ນໂທ SABC ວົງເງິນ 10,000$ ຂື້ນໄປ
 insert into temp_sme_pbx_BO_special_management
 select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
 	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
 	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
 	bp.`usd_loan_amount`,
-	'F created in 4-5-6 months ago' as `management_type`
-from tabSME_BO_and_Plan bp 
-where ( (bp.rank1 in ('F') and bp.rank_update not in ('FFF') )
-	or bp.rank_update in ('F') )
-	and bp.contract_status not in ('Contracted', 'Cancelled')
-	and timestampdiff(month, bp.creation, date(now())) between 4 and 6;
-
-
-
--- 3) SABC created in 4-5-6 months ago and loan amount less than $3,000 -- 2.	SALE ໂທ SABC ວົງເງິນ 3,000$ ລົງມາ ໂທ 4-5-6 ເດືອນ. TL   ໂທ SABC  ວົງເງີນ 3000$- 5,000$    ໂທ 4-5-6 ເດືອນ 
-insert into temp_sme_pbx_BO_special_management
-select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
-	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
-	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
-	bp.`usd_loan_amount`,
-	'SABC created in 4-5-6 months ago & loan < 3000' as `management_type`
-from tabSME_BO_and_Plan bp 
-where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
-	or bp.rank_update in ('S', 'A', 'B', 'C') )
-	and bp.contract_status not in ('Contracted', 'Cancelled')
-	and timestampdiff(month, bp.creation, date(now())) between 4 and 6
-	and bp.usd_loan_amount < 3000;
-
-
-
--- 3) SABC loan amount between 3000 to 4999 -- 2.	SALE ໂທ SABC ວົງເງິນ 3,000$ ລົງມາ ໂທ 4-5-6 ເດືອນ. TL   ໂທ SABC  ວົງເງີນ 3000$- 5,000$    ໂທ 4-5-6 ເດືອນ 
-insert into temp_sme_pbx_BO_special_management
-select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
-	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
-	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
-	bp.`usd_loan_amount`,
-	'SABC loan amount between 3000 to 4999' as `management_type`
+	'SABC loan amount over 10,000' as `management_type`
 from tabSME_BO_and_Plan bp 
 where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 	or bp.rank_update in ('S', 'A', 'B', 'C') )
 	and bp.contract_status not in ('Contracted', 'Cancelled')
 	-- and timestampdiff(month, bp.creation, date(now())) between 4 and 6
-	and bp.usd_loan_amount BETWEEN 3000 and 4999;
+	and bp.usd_loan_amount  >= 10000;
 
 
 
@@ -101,19 +70,58 @@ where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 
 
 
--- 3) SABC loan amount over 10,000 -- 4.	UNIT ແມ່ນໂທ SABC ວົງເງິນ 10,000$ ຂື້ນໄປ
+-- 3) SABC loan amount between 3000 to 4999 -- TL   ໂທ SABC  ວົງເງີນ 3000$- 5,000$    ໂທ 4-5-6 ເດືອນ 
 insert into temp_sme_pbx_BO_special_management
 select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
 	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
 	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
 	bp.`usd_loan_amount`,
-	'SABC loan amount over 10,000' as `management_type`
+	'SABC loan amount between 3000 to 4999' as `management_type`
 from tabSME_BO_and_Plan bp 
 where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 	or bp.rank_update in ('S', 'A', 'B', 'C') )
 	and bp.contract_status not in ('Contracted', 'Cancelled')
 	-- and timestampdiff(month, bp.creation, date(now())) between 4 and 6
-	and bp.usd_loan_amount  >= 10000;
+	and bp.usd_loan_amount BETWEEN 3000 and 4999;
+
+
+
+
+-- 3) SABC created in 4-5-6 months ago and loan amount less than $3,000 -- 2.	SALE ໂທ SABC ວົງເງິນ 3,000$ ລົງມາ ໂທ 4-5-6 ເດືອນ 
+insert into temp_sme_pbx_BO_special_management
+select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
+	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
+	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+	bp.`usd_loan_amount`,
+	'SABC created in 4-5-6 months ago & loan < 3000' as `management_type`
+from tabSME_BO_and_Plan bp 
+where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
+	or bp.rank_update in ('S', 'A', 'B', 'C') )
+	and bp.contract_status not in ('Contracted', 'Cancelled')
+	and timestampdiff(month, bp.creation, date(now())) between 4 and 6
+	and bp.usd_loan_amount < 3000;
+
+
+
+
+
+-- 3) F created in 4-5-6 months ago -- CC   RANK F  ໂທ 4-5-6 ເດືອນ ຍ້ອນຫລັງ 
+insert into temp_sme_pbx_BO_special_management
+select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
+	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
+	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+	bp.`usd_loan_amount`,
+	'F created in 4-5-6 months ago' as `management_type`
+from tabSME_BO_and_Plan bp 
+where ( (bp.rank1 in ('F') and bp.rank_update not in ('FFF') )
+	or bp.rank_update in ('F') )
+	and bp.contract_status not in ('Contracted', 'Cancelled')
+	and timestampdiff(month, bp.creation, date(now())) between 4 and 6
+	and bp_name in not (select bp_name from temp_sme_pbx_BO_special_management
+			where management_type in ('SABC loan amount over 10,000', 'SABC created in 4-5-6 months ago & loan < 3000', 
+									'SABC loan amount between 3000 to 4999', 'SABC loan amount between 5000 to 9999',
+									'SABC loan amount over 10,000')
+	);
 
 
 
