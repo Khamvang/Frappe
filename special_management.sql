@@ -81,6 +81,22 @@ where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 	and bp.usd_loan_amount BETWEEN 3000 and 4999;
 
 
+-- 3) SABC loan amount between 5000 to 9999 -- 3.	MINI ແມ່ນໂທ SABC  ວົງເງິນ 5,000$ ຂື້ນໄປ
+insert into temp_sme_pbx_BO_special_management
+select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
+	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
+	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+	bp.`usd_loan_amount`,
+	'SABC loan amount between 5000 to 9999' as `management_type`
+from tabSME_BO_and_Plan bp 
+where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
+	or bp.rank_update in ('S', 'A', 'B', 'C') )
+	and bp.contract_status not in ('Contracted', 'Cancelled')
+	-- and timestampdiff(month, bp.creation, date(now())) between 4 and 6
+	and bp.usd_loan_amount BETWEEN 5000 and 9999;
+
+
+
 
 -- 4) SABC created in 3 months ago
 insert into temp_sme_pbx_BO_special_management
