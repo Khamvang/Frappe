@@ -121,8 +121,66 @@ DROP EVENT IF EXISTS xyz_insert_new_sequence;
 
 
 
+-- ------------------------------------------------------------ trigger that runs automatically upon inserting or creating a new record  ------------------------------------------------------------
+-- 1) Create Trigger
+
+DELIMITER //
+
+CREATE TRIGGER trg_after_insert_tabsme_sales_partner
+BEFORE INSERT ON tabsme_Sales_partner
+FOR EACH ROW
+BEGIN
+    -- Update the `broker_tel` field based on the specified conditions
+    SET NEW.broker_tel = 
+        CASE 
+            WHEN NEW.broker_tel = '' THEN ''
+            WHEN (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 11 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 3) = '020')
+                OR (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 10 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 2) = '20')
+                OR (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 8 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 1) IN ('2', '5', '7', '8', '9'))
+                THEN CONCAT('9020', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8))
+            WHEN (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 10 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 3) = '030')
+                OR (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 9 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 2) = '30')
+                OR (LENGTH(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', '')) = 7 AND LEFT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 1) IN ('2', '4', '5', '7', '9'))
+                THEN CONCAT('9030', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 7))
+            WHEN LEFT(RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8), 1) IN ('0', '1', '') 
+                THEN CONCAT('9030', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 7))
+            WHEN LEFT(RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8), 1) IN ('2', '5', '7', '8', '9')
+                THEN CONCAT('9020', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8))
+            ELSE CONCAT('9020', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8))
+        END;
+
+    -- Update the `broker_type` field
+    SET NEW.broker_type = 
+        CASE 
+            WHEN NEW.refer_type = 'LMS_Broker' THEN 'SP - ນາຍໜ້າໃນອາດີດ'
+            ELSE NEW.broker_type 
+        END;
+
+    -- Update the `refer_type` field
+    SET NEW.refer_type = 
+        CASE 
+            WHEN NEW.broker_type = '5way - 5ສາຍພົວພັນ' AND NEW.refer_type IS NULL THEN '5way'
+            ELSE NEW.refer_type 
+        END;
+
+    -- Update the `owner_staff` field
+    SET NEW.owner_staff = 
+        CASE 
+            WHEN NEW.owner_staff = '' OR NEW.owner_staff IS NULL THEN NEW.current_staff
+            ELSE NEW.owner_staff 
+        END;
+END;
+//
+
+DELIMITER ;
 
 
+-- 2) Check Trigger
+SHOW TRIGGERS LIKE 'tabsme_Sales_partner';
+
+
+-- 3) Drop Trigger
+DROP TRIGGER IF EXISTS trg_after_insert_tabsme_sales_partner;
 
 
 
