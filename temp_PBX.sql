@@ -80,6 +80,8 @@ delete from pbx_unique where id in (
 
 -- _________________________ Dormant & Existing _________________________
 -- 4) Prepare table temp_sme_dor_inc, run this query on server 13.250.153.252 then export to server locahost database lalco_pbx table temp_sme_dor_inc (One time per month)
+delete from temp_sme_dor_inc;
+
 replace into temp_sme_dor_inc
 select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff` 
 from tabSME_Approach_list 
@@ -139,32 +141,12 @@ select * from temp_sme_pbx_sp where date >= date_add(date(now()), interval - 2 d
 
 
 -- Dormant and Existing, run this query on server locahost database lalco_pbx
--- 11) update Dor and Inc
-update temp_sme_dor_inc set customer_tel = 
-	case when customer_tel = '' then ''
-		when (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 11 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),3) = '020')
-			or (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 10 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),2) = '20')
-			or (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 8 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),1) in ('2','5','7','8','9'))
-		then concat('9020',right(regexp_replace(customer_tel , '[^[:digit:]]', ''),8)) -- for 020
-		when (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 10 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),3) = '030')
-			or (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 9 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),2) = '30')
-			or (length (regexp_replace(customer_tel , '[^[:digit:]]', '')) = 7 and left (regexp_replace(customer_tel , '[^[:digit:]]', ''),1) in ('2','4','5','7','9'))
-		then concat('9030',right(regexp_replace(customer_tel , '[^[:digit:]]', ''),7)) -- for 030
-		when left (right (regexp_replace(customer_tel , '[^[:digit:]]', ''),8),1) in ('0','1','') then concat('9030',right(regexp_replace(customer_tel , '[^[:digit:]]', ''),7))
-		when left (right (regexp_replace(customer_tel , '[^[:digit:]]', ''),8),1) in ('2','5','7','8','9')
-		then concat('9020',right(regexp_replace(customer_tel , '[^[:digit:]]', ''),8))
-		else concat('9020',right(regexp_replace(customer_tel , '[^[:digit:]]', ''),8))
-	end
-;
-
-
-
--- 12) update, run this query on server locahost database lalco_pbx
+-- 11) update, run this query on server locahost database lalco_pbx
 update temp_sme_dor_inc tdi join pbx_unique pu on (tdi.customer_tel = pu.contact_no)
 set tdi.pbx_status = pu.status, tdi.`date` = pu.date_created 
 
 
--- 13) export back to Frappe, run this query on server locahost database lalco_pbx
+-- 12) export back to Frappe, run this query on server locahost database lalco_pbx
 select * from temp_sme_dor_inc where date >= date_add(date(now()), interval - 2 day);
 
 
