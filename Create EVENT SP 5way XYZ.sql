@@ -174,3 +174,4 @@ DROP TRIGGER IF EXISTS trg_after_insert_tabsme_sales_partner;
 
 
 
+
