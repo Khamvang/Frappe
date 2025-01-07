@@ -271,6 +271,17 @@ where sp.refer_type = 'LMS_Broker';
 select name, current_staff, owner_staff from tabsme_Sales_partner WHERE owner_staff REGEXP '^[0-9]+$';
 
 
+-- 10.1) Update owner_staff, if current = owner
+update tabsme_Sales_partner
+set owner_staff = current_staff
+WHERE owner_staff REGEXP '^[0-9]+$' and owner_staff = left(current_staff, locate(' ', current_staff)-1)  ;
+
+
+-- 10.2) Update owner_staff, if owner = Staff_no in table tabsme_Employees
+update tabsme_Sales_partner sp inner join tabsme_Employees te on (sp.owner_staff = te.staff_no)
+set sp.owner_staff = te.name 
+WHERE sp.owner_staff REGEXP '^[0-9]+$' ;
+
 
 
 -- ______________________________________________________ End Do this every month ______________________________________________________
