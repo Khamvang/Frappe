@@ -124,7 +124,7 @@ select * from temp_sme_pbx_BO
 -- ____________________________________________ Run on locahost PBX server ____________________________________________
 -- Past SABCF, run this query on server locahost database lalco_pbx
 -- 7) update
-update temp_sme_pbx_bo ts join pbx_unique pu on (ts.broker_tel = pu.contact_no)
+update temp_sme_pbx_bo ts join pbx_unique pu on (ts.customer_tel = pu.contact_no)
 set ts.pbx_status = pu.status, ts.`date` = pu.date_created 
 
 -- 8) export to frappe 
