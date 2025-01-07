@@ -86,7 +86,7 @@ delete from pbx_unique where id in (
 delete from temp_sme_dor_inc;
 
 replace into temp_sme_dor_inc
-select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff` 
+select approach_id `contract_no`, customer_tel, null `pbx_status`, null `date`, staff_no `current_staff`, approach_type
 from tabSME_Approach_list 
 where approach_type in ('Dormant', 'Existing');
 
