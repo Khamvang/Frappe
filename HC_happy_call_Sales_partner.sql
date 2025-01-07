@@ -267,8 +267,8 @@ where sp.refer_type = 'LMS_Broker';
 
 
 
-
-
+-- 10) To filter and fix owner_staff data so that only valid entries (e.g., containing both numbers and text) are retained or updated, you can use SQL conditions to identify and update rows where owner_staff contains only numbers.
+select name, current_staff, owner_staff from tabsme_Sales_partner WHERE owner_staff REGEXP '^[0-9]+$';
 
 
 
