@@ -149,20 +149,6 @@ BEGIN
             ELSE CONCAT('9020', RIGHT(REGEXP_REPLACE(NEW.broker_tel, '[^[:digit:]]', ''), 8))
         END;
 
-    -- Update the `broker_type` field
-    SET NEW.broker_type = 
-        CASE 
-            WHEN NEW.refer_type = 'LMS_Broker' THEN 'SP - ນາຍໜ້າໃນອາດີດ'
-            ELSE NEW.broker_type 
-        END;
-
-    -- Update the `refer_type` field
-    SET NEW.refer_type = 
-        CASE 
-            WHEN NEW.broker_type = '5way - 5ສາຍພົວພັນ' AND NEW.refer_type IS NULL THEN '5way'
-            ELSE NEW.refer_type 
-        END;
-
     -- Update the `owner_staff` field
     SET NEW.owner_staff = 
         CASE 
