@@ -41,6 +41,9 @@ CREATE TABLE `temp_sme_dor_inc` (
 
 
 -- ________________________________________________________________________ Update PBX data ________________________________________________________________________
+-- 0) Begining of the month need to truncate the last month pbx data from table pbx_unique
+TRUNCATE pbx_unique;
+select * from pbx_unique;
 
 -- 1) insert data to table Run on server Locahost i7
 insert into pbx_unique  
@@ -59,7 +62,7 @@ select null id, callee_number 'contact_no',
 from lalco_pbx.pbx_cdr pc 
 where -- status = 'ANSWERED' and communication_type = 'Outbound'
 	   status in ('NO ANSWER', 'FAILED', 'BUSY', 'VOICEMAIL' ) and communication_type = 'Outbound'
- and date_format(`time`, '%Y-%m-%d') between '2024-11-01' and '2024-11-31' -- please chcek this date from table all_unique_analysis
+ and date_format(`time`, '%Y-%m-%d') between '2025-01-01' and '2025-01-31' -- please chcek this date from table all_unique_analysis
  and CONCAT(LENGTH(callee_number), left( callee_number, 5)) in ('1190302','1190304','1190305','1190307','1190309','1290202','1290205','1290207','1290209')
 group by callee_number ;
 
