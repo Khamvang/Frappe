@@ -49,10 +49,10 @@ CREATE TABLE sme_projectlist_target (
 
 -- sql for update target
 INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
-SELECT null as 'id',spl.contract_no as 'contract_no',spl.target_month as 'target_month',spl.now_amount_usd as 'now_amount_usd' 
-FROM sme_project_list spl left join sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
+SELECT null AS 'id',spl.contract_no AS 'contract_no',spl.target_month AS 'target_month',spl.now_amount_usd AS 'now_amount_usd' 
+FROM sme_project_list spl LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
 WHERE spl.target_month is not null
-	and spt.id is null
+	and spt.id is null;
 
 
 -- for check target month
@@ -63,58 +63,66 @@ group by target_month;
 
 -- for table collected
 CREATE TABLE sme_projectlist_collected (
-    cread_date datetime DEFAULT current_timestamp() ON UPDATE current_timestamp() ,
-    target_id INT NOT NULL,
-    contract_no VARCHAR(50),
-    affiliation VARCHAR(100),
-    sales_gdept VARCHAR(100),
-    sales_dept VARCHAR(100),
-    sales_sec_branch VARCHAR(100),
-    sales_unit VARCHAR(100),
-    sales_staff VARCHAR(100),
-    collection_staff VARCHAR(100),
-    collection_cc_staff VARCHAR(100),
-    seized_car VARCHAR(100),
-    payment_status VARCHAR(50),
-    payment_method VARCHAR(50),
-    collected_date DATE,
-    payment_rank VARCHAR(50)       
+	id INT(11) not null auto_increment,
+	target_id INT NOT NULL,
+	contract_no VARCHAR(50),
+	ho_br VARCHAR(100),
+	sales_gdept VARCHAR(100),
+	sales_dept VARCHAR(100),
+	sales_sec_branch VARCHAR(100),
+	sales_unit VARCHAR(100),
+	sales_staff VARCHAR(100),
+	collection_staff VARCHAR(100),
+	collection_cc_staff VARCHAR(100),
+	seized_car VARCHAR(100),
+	payment_status VARCHAR(50),
+	payment_method VARCHAR(50),
+	collected_date DATE,
+	payment_rank VARCHAR(50),
+	date_created datetime DEFAULT current_timestamp(),
+	date_updated datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
+
 -- for collected
-SELECT 
-NULL as 'cread_date',
-pjt.id as 'target_id',
-pjt.contract_no as 'contract_no',
-sorg.affiliation as 'affiliation',
-sorg.`g-dept` as 'sales_gdept',
-sorg.dept as 'sales_dept',
-sorg.sec_branch as 'sales_sec_branch',
-sorg.unit as 'sales_unit',
-CONCAT(sorg.staff_no ," - ",sorg.staff_name) as 'sales_staff',
-ep_c.name as 'collection_staff',
-ep_cc.name as collection_cc_staff,
-spl.seized_car  as 'seized_car',
-spl.payment_status  as 'payment_status',
-spl.payment_method as 'payment_method',
--- spl.target_month ,
-spl.collected_date as 'collected_date',
-    CASE 
-        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') < DATE_FORMAT(spl.target_month,'2024-01-01') THEN '-'
-	    WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-05') THEN 'S'
-        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-10') THEN 'A'
-        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-20') THEN 'B'
-        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-31') THEN 'C'
-        ELSE 'F'
-    END AS 'payment_rank'
-FROM sme_projectlist_target pjt
-left join sme_project_list spl on (spl.contract_no = pjt.contract_no and spl.target_month = pjt.target_month)
-left join sme_org sorg on (spl.sale_staff = sorg.staff_no)
+INSERT INTO sme_projectlist_collected
+
+SELECT
+	NULL AS 'id',
+	spt.id AS 'target_id',
+	spt.contract_no AS 'contract_no',
+	sorg.affiliation AS 'ho_br',
+	sorg.`g-dept` AS 'sales_gdept',
+	sorg.dept AS 'sales_dept',
+	sorg.sec_branch AS 'sales_sec_branch',
+	sorg.unit AS 'sales_unit',
+	CONCAT(sorg.staff_no ," - ",sorg.staff_name) AS 'sales_staff',
+	ep_c.name AS 'collection_staff',
+	ep_cc.name AS collection_cc_staff,
+	spl.seized_car  AS 'seized_car',
+	spl.payment_status  AS 'payment_status',
+	spl.payment_method AS 'payment_method',
+	spl.collected_date AS 'collected_date',
+	    CASE 
+	        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') < DATE_FORMAT(spl.target_month,'2024-01-01') THEN '-'
+		    WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-05') THEN 'S'
+	        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-10') THEN 'A'
+	        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-20') THEN 'B'
+	        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-31') THEN 'C'
+	        ELSE 'F'
+	    END AS 'payment_rank',
+	NULL AS date_created,
+	NULL AS date_updated,
+	spc.target_id 
+FROM sme_projectlist_target spt
+LEFT JOIN sme_project_list spl on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
+LEFT JOIN sme_projectlist_collected spc on (spt.contract_no = spc.contract_no and spt.id = spc.target_id)
+LEFT JOIN sme_org sorg on (spl.sale_staff = sorg.staff_no)
 LEFT JOIN tabsme_Employees ep_c on (ep_c.staff_no = spl.collection_staff)
 LEFT JOIN tabsme_Employees ep_cc on (ep_cc.staff_no = spl.collection_cc_staff)
--- where spl.payment_status = 'already paid'
- where spl.payment_status not in ('already paid') and spl.seized_car  = 'Got car'
--- and spl.target_month = '2024-10-05'
+WHERE spl.payment_status in ('already paid') or spl.seized_car  = 'Got car'
+	AND spc.id IS NULL
 
  
  
