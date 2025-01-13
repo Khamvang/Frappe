@@ -46,15 +46,20 @@ CREATE TABLE sme_projectlist_target (
     PRIMARY KEY (id)                    -- Primary key defined correctly here
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
+
 -- sql for update target
 INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
 SELECT null as 'id',spl.contract_no as 'contract_no',spl.target_month as 'target_month',spl.now_amount_usd as 'now_amount_usd' 
-FROM sme_project_list spl
-WHERE target_month = '2024-12-05'
+FROM sme_project_list spl left join sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
+WHERE spl.target_month is not null
+	and spt.id is null
+
 
 -- for check target month
-SELECT target_month, COUNT(contract_no) from sme_projectlist_target spt
-group by target_month 
+select target_month, COUNT(*) 
+from sme_projectlist_target
+group by target_month;
+
 
 -- for table collected
 CREATE TABLE sme_projectlist_collected (
