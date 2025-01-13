@@ -47,6 +47,7 @@ CREATE TABLE sme_projectlist_target (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 -- sql for update target
+INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
 SELECT null as 'id',spl.contract_no as 'contract_no',spl.target_month as 'target_month',spl.now_amount_usd as 'now_amount_usd' 
 FROM sme_project_list spl
 WHERE target_month = '2024-12-05'
