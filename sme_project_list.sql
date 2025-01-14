@@ -1,67 +1,48 @@
--- --------------- collection ------ 
--- 1. create table sme_project_list for save all data
 
+-- ------------------------------------ Create table collection ------------------------------------ 
+-- 1. create table sme_project_list for save all data
 CREATE TABLE sme_project_list (
-    id INT AUTO_INCREMENT,
-    debt_type VARCHAR(255) NOT NULL,
-    target_month DATE NOT NULL,
-    first_payment_date DATE,
-    last_payment_date DATE,
-    contract_no VARCHAR(255) ,
-    customer_name VARCHAR(255) NOT NULL,
-    customer_tel VARCHAR(20),
-    sale_staff VARCHAR(20),
-    collection_staff VARCHAR(20),
-    collection_cc_staff VARCHAR(20),
-    now_amount_usd DECIMAL(15, 2),
-    last_payment_rank varchar(50),
-    call_to_whom VARCHAR(255),
-    call_status VARCHAR(255),
-    number_of_promised INT DEFAULT NULL,
-    promised_date DATE DEFAULT NULL,
-    -- visit_date datetime(6) DEFAULT NULL,
-    gps_status VARCHAR(50) DEFAULT NULL,
-    exceptional VARCHAR(255) DEFAULT NULL,
-    seized_car VARCHAR(255) DEFAULT NULL,
-    payment_status VARCHAR(255),
-    payment_method VARCHAR(255),
-    collected_date Date default null,
-    `datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	id INT AUTO_INCREMENT,
+	debt_type VARCHAR(255) NOT NULL,
+	target_month DATE NOT NULL,
+	first_payment_date DATE,
+	last_payment_date DATE,
+	contract_no VARCHAR(255) ,
+	customer_name VARCHAR(255) NOT NULL,
+	customer_tel VARCHAR(20),
+	sale_staff VARCHAR(20),
+	collection_staff VARCHAR(20),
+	collection_cc_staff VARCHAR(20),
+	now_amount_usd DECIMAL(15, 2),
+	last_payment_rank varchar(50),
+	call_to_whom VARCHAR(255),
+	call_status VARCHAR(255),
+	number_of_promised INT DEFAULT NULL,
+	promised_date DATE DEFAULT NULL,
+	-- visit_date datetime(6) DEFAULT NULL,
+	gps_status VARCHAR(50) DEFAULT NULL,
+	exceptional VARCHAR(255) DEFAULT NULL,
+	seized_car VARCHAR(255) DEFAULT NULL,
+	payment_status VARCHAR(255),
+	payment_method VARCHAR(255),
+	collected_date Date default null,
+	`datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
  	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
--- 1 update sme_project list in spreadsheet Example: https://docs.google.com/spreadsheets/d/1iZIPNZDR4q5xnQMlXx8dc6W2nL2f9FMT5B2IikEZt_s/edit?gid=1031641098#gid=1031641098
 
--- sheet [For_Frappe]
--- then save csv file to table: sme_project_list
--- then run sql to update target: 
-
-
--- table target
+-- 2. Create table target
 CREATE TABLE sme_projectlist_target (
-    id INT(11) NOT NULL AUTO_INCREMENT, -- Unique identifier for each row
-    contract_no VARCHAR(50) NOT NULL,   -- Contract number, max length of 50 characters
-    target_month DATE NOT NULL,         -- Target month stored as a date
-    now_amount_usd DECIMAL(15, 2),      -- Amount in USD, with precision up to 2 decimal places
-    PRIMARY KEY (id)                    -- Primary key defined correctly here
+	id INT(11) NOT NULL AUTO_INCREMENT,	-- Unique identifier for each row
+	contract_no VARCHAR(50) NOT NULL,	-- Contract number, max length of 50 characters
+	target_month DATE NOT NULL,		-- Target month stored as a date
+	now_amount_usd DECIMAL(15, 2), 		-- Amount in USD, with precision up to 2 decimal places
+	PRIMARY KEY (id)			-- Primary key defined correctly here
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
--- sql for update target
-INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
-SELECT null AS 'id',spl.contract_no AS 'contract_no',spl.target_month AS 'target_month',spl.now_amount_usd AS 'now_amount_usd' 
-FROM sme_project_list spl LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
-WHERE spl.target_month is not null
-	and spt.id is null;
 
-
--- for check target month
-select target_month, COUNT(*) 
-from sme_projectlist_target
-group by target_month;
-
-
--- for table collected
+-- 3. Create table collected
 CREATE TABLE sme_projectlist_collected (
 	id INT(11) not null auto_increment,
 	target_id INT NOT NULL,
@@ -83,6 +64,37 @@ CREATE TABLE sme_projectlist_collected (
 	date_updated datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
 	PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+
+
+-- ------------------------------------ Workflow to update ------------------------------------
+
+-- 1 update sme_project list in spreadsheet Example: https://docs.google.com/spreadsheets/d/1iZIPNZDR4q5xnQMlXx8dc6W2nL2f9FMT5B2IikEZt_s/edit?gid=1031641098#gid=1031641098
+
+-- sheet [For_Frappe]
+-- then save csv file to table: sme_project_list
+-- then run sql to update target: 
+
+
+
+
+-- 2. After import 3 files as This month, Last month, 2 months delay
+
+-- sql for update target
+INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
+SELECT null AS 'id',spl.contract_no AS 'contract_no',spl.target_month AS 'target_month',spl.now_amount_usd AS 'now_amount_usd' 
+FROM sme_project_list spl LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
+WHERE spl.target_month is not null
+	and spt.id is null;
+
+
+-- for check target month
+select target_month, COUNT(*) 
+from sme_projectlist_target
+group by target_month;
+
+
+
 
 
 -- for collected
@@ -124,18 +136,17 @@ LEFT JOIN tabsme_Employees ep_cc on (ep_cc.staff_no = spl.collection_cc_staff)
 WHERE spl.payment_status in ('already paid') or spl.seized_car  = 'Got car'
 	AND spc.id IS NULL
 
- 
- 
-SELECT * FROM sme_project_list spl ;
-SELECT * FROM sme_projectlist_target spt ;
-SELECT * FROM sme_projectlist_collected spc ;
-
- -- export file
 
 
 
-
-
+-- delete duplicate from sme_project_list
+DELETE FROM sme_project_list WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
+		FROM sme_project_list
+	) AS t1
+WHERE row_numbers > 1 
+);
 
 
 
