@@ -81,7 +81,8 @@ CREATE INDEX idx_target_month ON sme_projectlist_target (target_month);
 show index from sme_projectlist_collected;
 CREATE INDEX idx_contract_no ON sme_projectlist_collected (contract_no);
 CREATE INDEX idx_target_id ON sme_projectlist_collected (target_id);
-
+CREATE INDEX idx_target_month ON sme_projectlist_collected (target_month);
+CREATE INDEX idx_payment_status ON sme_projectlist_collected (payment_status);
 
 
 
@@ -143,8 +144,8 @@ SELECT
 	        WHEN DATE_FORMAT(spl.collected_date, '%Y-%m-%d') <= DATE_FORMAT(spl.target_month,'%Y-%m-31') THEN 'C'
 	        ELSE 'F'
 	    END AS 'payment_rank',
-	NULL AS date_created,
-	NULL AS date_updated
+	NOW() AS date_created,
+	NOW() AS date_updated
 	-- spc.target_id 
 FROM sme_projectlist_target spt
 LEFT JOIN sme_project_list spl on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
@@ -181,24 +182,56 @@ WHERE row_numbers > 1
 */
 
 
--- check data
-SELECT spt.target_month, 
-	SUM( 
-		CASE WHEN spl.target_month IS NOT NULL THEN 1 ELSE 0 END
-	) AS count_target_spl,
-	SUM( 
-		CASE WHEN spt.target_month IS NOT NULL THEN 1 ELSE 0 END
-	) AS count_target_spt,
-	SUM(
-		CASE WHEN spc.payment_status = 'already paid' THEN 1 ELSE 0 END
-	) AS count_already_paid_spl,
-	SUM(
-		CASE WHEN spc.payment_status = 'already paid' THEN 1 ELSE 0 END
-	) AS count_already_paid_co
-FROM sme_project_list spl 
-RIGHT JOIN sme_projectlist_target spt ON (spl.contract_no = spt.contract_no AND spl.target_month = spt.target_month)
-LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
-GROUP BY spt.target_month;
+
+
+
+-- Main check
+SELECT spl.target_month, COUNT(*) AS spl_target, 
+	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) AS spl_already_paid,
+	spt.spt_target , spc.spc_already_paid,
+	COUNT(*) = spt.spt_target AS target_check,
+	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) = spc.spc_already_paid AS already_paid_check
+FROM sme_project_list spl
+LEFT JOIN (SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_target GROUP BY target_month
+	) AS spt ON (spl.target_month = spt.target_month)
+LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month
+	) AS spc ON (spl.target_month = spc.target_month)
+WHERE spl.datetime_update >= '2025-01-14 18:00'
+GROUP BY spl.target_month;
+
+
+-- sub1
+SELECT spl.target_month, COUNT(*) AS spl_target, 
+	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) AS spl_already_paid
+FROM sme_project_list spl
+WHERE spl.datetime_update >= '2025-01-14 18:00'
+GROUP BY target_month;
+-- 
+target_month|spl_target|spl_already_paid|
+------------+----------+----------------+
+            |      4663|             836|
+  2024-11-05|      6179|            6154|
+  2024-12-05|      5987|            5639|
+  2025-01-05|      5475|            4106|
+
+-- sub2
+SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_target GROUP BY target_month;
+-- 
+target_month|spt_target|
+------------+----------+
+  2024-11-05|      6179|
+  2024-12-05|      5987|
+  2025-01-05|      5515|
+
+-- sub3
+SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month;
+-- 
+target_month|spc_already_paid|
+------------+----------------+
+  2024-11-05|            6163|
+  2024-12-05|            5647|
+  2025-01-05|            4106|
+
 
 
 
