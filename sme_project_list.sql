@@ -47,6 +47,7 @@ CREATE TABLE sme_projectlist_collected (
 	id INT(11) not null auto_increment,
 	target_id INT NOT NULL,
 	contract_no VARCHAR(50),
+	target_month DATE NOT NULL,
 	ho_br VARCHAR(100),
 	sales_gdept VARCHAR(100),
 	sales_dept VARCHAR(100),
@@ -118,6 +119,7 @@ SELECT
 	NULL AS 'id',
 	spt.id AS 'target_id',
 	spt.contract_no AS 'contract_no',
+	spt.target_month AS 'target_month',
 	sorg.affiliation AS 'ho_br',
 	sorg.`g-dept` AS 'sales_gdept',
 	sorg.dept AS 'sales_dept',
@@ -139,8 +141,8 @@ SELECT
 	        ELSE 'F'
 	    END AS 'payment_rank',
 	NULL AS date_created,
-	NULL AS date_updated,
-	spc.target_id 
+	NULL AS date_updated
+	-- spc.target_id 
 FROM sme_projectlist_target spt
 LEFT JOIN sme_project_list spl on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
 LEFT JOIN sme_projectlist_collected spc on (spt.contract_no = spc.contract_no and spt.id = spc.target_id)
@@ -163,8 +165,37 @@ WHERE row_numbers > 1
 );
 
 
+/*
+-- delete duplicate from sme_project_list
+DELETE FROM sme_projectlist_collected WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT spt.`id`, ROW_NUMBER() OVER (PARTITION BY spt.`contract_no`, spt.target_month ORDER BY spt.target_month DESC, spt.`id` DESC) AS row_numbers  
+		FROM sme_projectlist_target spt
+		LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
+	) AS t1
+WHERE row_numbers > 1 
+);
+*/
 
 
+-- check data
+SELECT spt.target_month, 
+	SUM( 
+		CASE WHEN spl.target_month IS NOT NULL THEN 1 ELSE 0 END
+	) AS count_target_spl,
+	SUM( 
+		CASE WHEN spt.target_month IS NOT NULL THEN 1 ELSE 0 END
+	) AS count_target_spt,
+	SUM(
+		CASE WHEN spc.payment_status = 'already paid' THEN 1 ELSE 0 END
+	) AS count_already_paid_spl,
+	SUM(
+		CASE WHEN spc.payment_status = 'already paid' THEN 1 ELSE 0 END
+	) AS count_already_paid_co
+FROM sme_project_list spl 
+RIGHT JOIN sme_projectlist_target spt ON (spl.contract_no = spt.contract_no AND spl.target_month = spt.target_month)
+LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
+GROUP BY spt.target_month;
 
 
 
