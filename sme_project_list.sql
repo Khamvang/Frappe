@@ -82,6 +82,9 @@ show index from sme_projectlist_collected;
 CREATE INDEX idx_contract_no ON sme_projectlist_collected (contract_no);
 CREATE INDEX idx_target_id ON sme_projectlist_collected (target_id);
 
+
+
+
 -- ------------------------------------ Workflow to update ------------------------------------
 
 -- 1 update sme_project list in spreadsheet Example: https://docs.google.com/spreadsheets/d/1iZIPNZDR4q5xnQMlXx8dc6W2nL2f9FMT5B2IikEZt_s/edit?gid=1031641098#gid=1031641098
