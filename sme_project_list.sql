@@ -61,8 +61,8 @@ CREATE TABLE sme_projectlist_collected (
 	payment_method VARCHAR(50),
 	collected_date DATE,
 	payment_rank VARCHAR(50),
-	date_created datetime DEFAULT current_timestamp(),
-	date_updated datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	date_created datetime NOT NULL DEFAULT current_timestamp(),
+	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
 	PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
