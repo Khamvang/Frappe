@@ -4,7 +4,7 @@
 CREATE TABLE sme_project_list (
 	id INT AUTO_INCREMENT,
 	debt_type VARCHAR(255) NOT NULL,
-	target_month DATE NOT NULL,
+	target_month DATE DEFAULT NULL,
 	first_payment_date DATE,
 	last_payment_date DATE,
 	contract_no VARCHAR(255) ,
@@ -196,6 +196,7 @@ FROM sme_project_list spl
 RIGHT JOIN sme_projectlist_target spt ON (spl.contract_no = spt.contract_no AND spl.target_month = spt.target_month)
 LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
 GROUP BY spt.target_month;
+
 
 
 
