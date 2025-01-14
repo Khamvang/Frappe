@@ -67,6 +67,20 @@ CREATE TABLE sme_projectlist_collected (
 
 
 
+show index from sme_project_list;
+CREATE INDEX idx_contract_no ON sme_project_list (contract_no);
+CREATE INDEX idx_target_month ON sme_project_list (target_month);
+
+
+show index from sme_projectlist_target;
+CREATE INDEX idx_contract_no ON sme_projectlist_target (contract_no);
+CREATE INDEX idx_target_month ON sme_projectlist_target (target_month);
+
+
+show index from sme_projectlist_collected;
+CREATE INDEX idx_contract_no ON sme_projectlist_collected (contract_no);
+CREATE INDEX idx_target_id ON sme_projectlist_collected (target_id);
+
 -- ------------------------------------ Workflow to update ------------------------------------
 
 -- 1 update sme_project list in spreadsheet Example: https://docs.google.com/spreadsheets/d/1iZIPNZDR4q5xnQMlXx8dc6W2nL2f9FMT5B2IikEZt_s/edit?gid=1031641098#gid=1031641098
@@ -133,7 +147,7 @@ LEFT JOIN sme_projectlist_collected spc on (spt.contract_no = spc.contract_no an
 LEFT JOIN sme_org sorg on (spl.sale_staff = sorg.staff_no)
 LEFT JOIN tabsme_Employees ep_c on (ep_c.staff_no = spl.collection_staff)
 LEFT JOIN tabsme_Employees ep_cc on (ep_cc.staff_no = spl.collection_cc_staff)
-WHERE spl.payment_status in ('already paid') or spl.seized_car  = 'Got car'
+WHERE (spl.payment_status in ('already paid') or spl.seized_car  = 'Got car')
 	AND spc.id IS NULL
 
 
