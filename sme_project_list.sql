@@ -173,7 +173,7 @@ LEFT JOIN (SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_targ
 	) AS spt ON (spl.target_month = spt.target_month)
 LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month
 	) AS spc ON (spl.target_month = spc.target_month)
-WHERE spl.datetime_update >= '2025-01-15 15:30'
+WHERE spl.date_created >= '2025-01-15 15:30'
 GROUP BY spl.target_month;
 -- 
 target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_dff|already_paid_dff|
@@ -188,7 +188,7 @@ target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_dff|
 SELECT spl.target_month, COUNT(*) AS spl_target, 
 	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) AS spl_already_paid
 FROM sme_project_list spl
-WHERE spl.datetime_update >= '2025-01-14 18:00'
+WHERE spl.date_created >= '2025-01-14 18:00'
 GROUP BY target_month;
 -- 
 target_month|spl_target|spl_already_paid|
@@ -260,7 +260,7 @@ FROM sme_project_list spl
 LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
 WHERE ((spl.target_month = '2025-01-05' AND spt.target_month IS NULL)
 	OR (spl.target_month IS NULL AND spt.target_month = '2025-01-05'))
-	AND spl.datetime_update >= '2025-01-14 18:00'
+	AND spl.date_created >= '2025-01-14 18:00'
 ;
 
 
