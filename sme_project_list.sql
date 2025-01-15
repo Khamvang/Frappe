@@ -102,7 +102,8 @@ CREATE INDEX idx_payment_status ON sme_projectlist_collected (payment_status);
 -- sql for update target
 INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
 SELECT null AS 'id',spl.contract_no AS 'contract_no',spl.target_month AS 'target_month',spl.now_amount_usd AS 'now_amount_usd' 
-FROM sme_project_list spl LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
+FROM sme_project_list spl 
+LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
 WHERE spl.target_month is not null
 	and spt.id is null;
 
