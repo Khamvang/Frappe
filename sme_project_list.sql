@@ -19,7 +19,6 @@ CREATE TABLE sme_project_list (
 	call_status VARCHAR(255),
 	number_of_promised INT DEFAULT NULL,
 	promised_date DATE DEFAULT NULL,
-	-- visit_date datetime(6) DEFAULT NULL,
 	gps_status VARCHAR(50) DEFAULT NULL,
 	exceptional VARCHAR(255) DEFAULT NULL,
 	seized_car VARCHAR(255) DEFAULT NULL,
