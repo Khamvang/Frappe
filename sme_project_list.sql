@@ -27,8 +27,10 @@ CREATE TABLE sme_project_list (
 	payment_method VARCHAR(255),
 	collected_date Date default null,
 	`datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
- 	PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+ 	PRIMARY KEY (`id`),
+	KEY `idx_contract_no` (`contract_no`),
+  	KEY `idx_target_month` (`target_month`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
 
 
 -- 2. Create table target
@@ -39,8 +41,10 @@ CREATE TABLE sme_projectlist_target (
 	now_amount_usd DECIMAL(15, 2), 		-- Amount in USD, with precision up to 2 decimal places
 	date_created datetime NOT NULL DEFAULT current_timestamp(),
 	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-	PRIMARY KEY (id)			-- Primary key defined correctly here
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+	PRIMARY KEY (id),
+	KEY `idx_contract_no` (`contract_no`),
+	KEY `idx_target_month` (`target_month`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
 
 
 
@@ -65,12 +69,12 @@ CREATE TABLE sme_projectlist_collected (
 	payment_rank VARCHAR(50),
 	date_created datetime NOT NULL DEFAULT current_timestamp(),
 	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-	PRIMARY KEY (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-
-
-ALTER TABLE `sme_project_list` 
-CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+	PRIMARY KEY (id),
+	KEY `idx_target_id` (`target_id`),
+	KEY `idx_contract_no` (`contract_no`),
+	KEY `idx_target_month` (`target_month`),
+	KEY `idx_payment_status` (`payment_status`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
 
 
 
@@ -105,7 +109,7 @@ CREATE INDEX idx_payment_status ON sme_projectlist_collected (payment_status);
 
 -- 2. After import 3 files as This month, Last month, 2 months delay
 
--- sql for update target
+-- 2.1 sql for update target
 INSERT INTO sme_projectlist_target (id, contract_no, target_month, now_amount_usd)
 SELECT null AS 'id',spl.contract_no AS 'contract_no',spl.target_month AS 'target_month',spl.now_amount_usd AS 'now_amount_usd' 
 FROM sme_project_list spl 
@@ -114,12 +118,8 @@ WHERE spl.target_month is not null
 	and spt.id is null;
 
 
-
-
-
--- for collected
+-- 2.2 for collected
 INSERT INTO sme_projectlist_collected
-
 SELECT
 	NULL AS 'id',
 	spt.id AS 'target_id',
@@ -159,29 +159,30 @@ WHERE (spl.payment_status in ('already paid') or spl.seized_car  = 'Got car')
 
 
 
--- Main check
+-- 3. Check the issue 
+-- 3.1 Main check
 SELECT spl.target_month, COUNT(*) AS spl_target, 
 	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) AS spl_already_paid,
 	spt.spt_target , spc.spc_already_paid,
-	COUNT(*) = spt.spt_target AS target_check,
-	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) = spc.spc_already_paid AS already_paid_check
+	COUNT(*) - spt.spt_target AS target_dff,
+	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) - spc.spc_already_paid AS already_paid_dff
 FROM sme_project_list spl
 LEFT JOIN (SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_target GROUP BY target_month
 	) AS spt ON (spl.target_month = spt.target_month)
 LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month
 	) AS spc ON (spl.target_month = spc.target_month)
-WHERE spl.datetime_update >= '2025-01-14 18:00'
+WHERE spl.datetime_update >= '2025-01-15 10:00'
 GROUP BY spl.target_month;
 -- 
-target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_check|already_paid_check|
-------------+----------+----------------+----------+----------------+------------+------------------+
-            |      4663|             836|          |                |            |                  |
-  2024-11-05|      6179|            6154|      6179|            6163|           1|                 0|
-  2024-12-05|      5987|            5639|      5987|            5647|           1|                 0|
-  2025-01-05|      5475|            4106|      5515|            4106|           0|                 1|
+target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_dff|already_paid_dff|
+------------+----------+----------------+----------+----------------+----------+----------------+
+            |      4425|             641|          |                |          |                |
+  2024-11-05|      6179|            6154|      6179|            6170|         0|             -16|
+  2024-12-05|      6225|            5906|      6225|            5913|         0|              -7|
+  2025-01-05|      5475|            4376|      5516|            4376|       -41|               0|
 
 
--- sub1
+-- 3.2 sub1
 SELECT spl.target_month, COUNT(*) AS spl_target, 
 	SUM(CASE WHEN spl.payment_status = 'already paid' THEN 1 ELSE 0 END) AS spl_already_paid
 FROM sme_project_list spl
@@ -190,28 +191,43 @@ GROUP BY target_month;
 -- 
 target_month|spl_target|spl_already_paid|
 ------------+----------+----------------+
-            |      4663|             836|
+            |      4425|             641|
   2024-11-05|      6179|            6154|
-  2024-12-05|      5987|            5639|
-  2025-01-05|      5475|            4106|
+  2024-12-05|      6225|            5906|
+  2025-01-05|      5475|            4376|
 
--- sub2
+-- 3.3 sub2
 SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_target GROUP BY target_month;
 -- 
 target_month|spt_target|
 ------------+----------+
   2024-11-05|      6179|
-  2024-12-05|      5987|
-  2025-01-05|      5515|
+  2024-12-05|      6225|
+  2025-01-05|      5516|
 
--- sub3
+-- 3.4 sub3
 SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month;
 -- 
 target_month|spc_already_paid|
 ------------+----------------+
-  2024-11-05|            6163|
-  2024-12-05|            5647|
-  2025-01-05|            4106|
+  2024-11-05|            6170|
+  2024-12-05|            5913|
+  2025-01-05|            4376|
+
+
+
+
+
+
+-- delete duplicate from sme_project_list
+DELETE FROM sme_project_list WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
+		FROM sme_project_list
+	) AS t1
+WHERE row_numbers > 1 
+);
+
 
 
 -- check the 
@@ -224,17 +240,6 @@ WHERE ((spl.target_month = '2025-01-05' AND spt.target_month IS NULL)
 	OR (spl.target_month IS NULL AND spt.target_month = '2025-01-05'))
 	AND spl.datetime_update >= '2025-01-14 18:00'
 ;
-
-
-
--- delete duplicate from sme_project_list
-DELETE FROM sme_project_list WHERE `id` IN (
-SELECT `id` FROM ( 
-		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
-		FROM sme_project_list
-	) AS t1
-WHERE row_numbers > 1 
-);
 
 
 /*
