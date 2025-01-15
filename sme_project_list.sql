@@ -95,6 +95,8 @@ CREATE INDEX idx_target_month ON sme_projectlist_collected (target_month);
 CREATE INDEX idx_payment_status ON sme_projectlist_collected (payment_status);
 
 
+ALTER TABLE sme_projectlist_target 
+CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ------------------------------------ Workflow to update ------------------------------------
 
