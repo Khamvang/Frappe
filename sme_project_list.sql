@@ -171,7 +171,7 @@ LEFT JOIN (SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_targ
 	) AS spt ON (spl.target_month = spt.target_month)
 LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month
 	) AS spc ON (spl.target_month = spc.target_month)
-WHERE spl.datetime_update >= '2025-01-15 10:00'
+WHERE spl.datetime_update >= '2025-01-15 15:30'
 GROUP BY spl.target_month;
 -- 
 target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_dff|already_paid_dff|
@@ -222,12 +222,32 @@ target_month|spc_already_paid|
 -- delete duplicate from sme_project_list
 DELETE FROM sme_project_list WHERE `id` IN (
 SELECT `id` FROM ( 
-		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
+		SELECT `id`, contract_no, target_month, datetime_update ,
+			ROW_NUMBER() OVER (
+				PARTITION BY `contract_no` 
+				ORDER BY DATE_FORMAT(datetime_update, '%Y-%m-%d') DESC,
+					target_month DESC,
+					id DESC
+			) AS row_numbers  
 		FROM sme_project_list
 	) AS t1
 WHERE row_numbers > 1 
 );
 
+
+-- delete duplicate from sme_project_list
+DELETE FROM sme_project_list WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT `id`, 
+			ROW_NUMBER() OVER (
+				PARTITION BY `contract_no` 
+				ORDER BY `id` DESC,
+					target_month DESC
+			) AS row_numbers  
+		FROM sme_project_list
+	) AS t1
+WHERE row_numbers > 1 
+);
 
 
 -- check the 
