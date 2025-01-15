@@ -225,7 +225,7 @@ SELECT `id` FROM (
 		SELECT `id`, contract_no, target_month, datetime_update ,
 			ROW_NUMBER() OVER (
 				PARTITION BY `contract_no` 
-				ORDER BY DATE_FORMAT(datetime_update, '%Y-%m-%d') DESC,
+				ORDER BY DATE_FORMAT(date_created, '%Y-%m-%d') DESC,
 					target_month DESC,
 					id DESC
 			) AS row_numbers  
