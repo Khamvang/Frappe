@@ -26,7 +26,8 @@ CREATE TABLE sme_project_list (
 	payment_status VARCHAR(255),
 	payment_method VARCHAR(255),
 	collected_date Date default null,
-	`datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	date_created datetime NOT NULL DEFAULT current_timestamp(),
+	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
  	PRIMARY KEY (`id`),
 	KEY `idx_contract_no` (`contract_no`),
   	KEY `idx_target_month` (`target_month`)
