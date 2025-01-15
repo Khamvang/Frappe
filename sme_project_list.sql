@@ -256,6 +256,14 @@ WHERE row_numbers > 1
 
 
 
+-- Export to Sameera for Ticket https://redmine.lalco.la/issues/4170
+SELECT contract_no, target_month, payment_status, null 'Partial amount'
+FROM sme_project_list
+WHERE target_month is not null
+ORDER BY target_month DESC;
+
+
+
 
 -- == Ways 2
 -- 2. export project list from LMS live project list by month
