@@ -198,6 +198,13 @@ LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlis
 	) AS spc ON (spl.target_month = spc.target_month)
 WHERE spl.datetime_update >= '2025-01-14 18:00'
 GROUP BY spl.target_month;
+-- 
+target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_check|already_paid_check|
+------------+----------+----------------+----------+----------------+------------+------------------+
+            |      4663|             836|          |                |            |                  |
+  2024-11-05|      6179|            6154|      6179|            6163|           1|                 0|
+  2024-12-05|      5987|            5639|      5987|            5647|           1|                 0|
+  2025-01-05|      5475|            4106|      5515|            4106|           0|                 1|
 
 
 -- sub1
