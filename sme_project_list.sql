@@ -37,6 +37,8 @@ CREATE TABLE sme_projectlist_target (
 	contract_no VARCHAR(50) NOT NULL,	-- Contract number, max length of 50 characters
 	target_month DATE NOT NULL,		-- Target month stored as a date
 	now_amount_usd DECIMAL(15, 2), 		-- Amount in USD, with precision up to 2 decimal places
+	date_created datetime NOT NULL DEFAULT current_timestamp(),
+	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
 	PRIMARY KEY (id)			-- Primary key defined correctly here
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -65,6 +67,10 @@ CREATE TABLE sme_projectlist_collected (
 	date_updated datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
 	PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+
+ALTER TABLE `sme_project_list` 
+CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 
 
@@ -106,12 +112,6 @@ FROM sme_project_list spl
 LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no and spl.target_month = spt.target_month)
 WHERE spl.target_month is not null
 	and spt.id is null;
-
-
--- for check target month
-select target_month, COUNT(*) 
-from sme_projectlist_target
-group by target_month;
 
 
 
@@ -156,33 +156,6 @@ LEFT JOIN tabsme_Employees ep_c on (ep_c.staff_no = spl.collection_staff)
 LEFT JOIN tabsme_Employees ep_cc on (ep_cc.staff_no = spl.collection_cc_staff)
 WHERE (spl.payment_status in ('already paid') or spl.seized_car  = 'Got car')
 	AND spc.id IS NULL
-
-
-
-
--- delete duplicate from sme_project_list
-DELETE FROM sme_project_list WHERE `id` IN (
-SELECT `id` FROM ( 
-		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
-		FROM sme_project_list
-	) AS t1
-WHERE row_numbers > 1 
-);
-
-
-/*
--- delete duplicate from sme_project_list
-DELETE FROM sme_projectlist_collected WHERE `id` IN (
-SELECT `id` FROM ( 
-		SELECT spt.`id`, ROW_NUMBER() OVER (PARTITION BY spt.`contract_no`, spt.target_month ORDER BY spt.target_month DESC, spt.`id` DESC) AS row_numbers  
-		FROM sme_projectlist_target spt
-		LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
-	) AS t1
-WHERE row_numbers > 1 
-);
-*/
-
-
 
 
 
@@ -241,8 +214,40 @@ target_month|spc_already_paid|
   2025-01-05|            4106|
 
 
+-- check the 
+SELECT null AS 'id', spl.contract_no AS 'contract_no', 
+	spl.target_month AS 'spl_target_month', spt.target_month AS 'spt_target_month',
+	spl.now_amount_usd AS 'now_amount_usd' 
+FROM sme_project_list spl 
+LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
+WHERE ((spl.target_month = '2025-01-05' AND spt.target_month IS NULL)
+	OR (spl.target_month IS NULL AND spt.target_month = '2025-01-05'))
+	AND spl.datetime_update >= '2025-01-14 18:00'
+;
 
 
+
+-- delete duplicate from sme_project_list
+DELETE FROM sme_project_list WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT `id`, ROW_NUMBER() OVER (PARTITION BY `contract_no` ORDER BY target_month DESC, `id` DESC) AS row_numbers  
+		FROM sme_project_list
+	) AS t1
+WHERE row_numbers > 1 
+);
+
+
+/*
+-- delete duplicate from sme_project_list
+DELETE FROM sme_projectlist_collected WHERE `id` IN (
+SELECT `id` FROM ( 
+		SELECT spt.`id`, ROW_NUMBER() OVER (PARTITION BY spt.`contract_no`, spt.target_month ORDER BY spt.target_month DESC, spt.`id` DESC) AS row_numbers  
+		FROM sme_projectlist_target spt
+		LEFT JOIN sme_projectlist_collected spc ON (spt.contract_no = spc.contract_no AND spt.id = spc.target_id)
+	) AS t1
+WHERE row_numbers > 1 
+);
+*/
 
 
 
