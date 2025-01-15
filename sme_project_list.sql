@@ -30,7 +30,7 @@ CREATE TABLE sme_project_list (
  	PRIMARY KEY (`id`),
 	KEY `idx_contract_no` (`contract_no`),
   	KEY `idx_target_month` (`target_month`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 -- 2. Create table target
@@ -44,7 +44,7 @@ CREATE TABLE sme_projectlist_target (
 	PRIMARY KEY (id),
 	KEY `idx_contract_no` (`contract_no`),
 	KEY `idx_target_month` (`target_month`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 
@@ -74,7 +74,7 @@ CREATE TABLE sme_projectlist_collected (
 	KEY `idx_contract_no` (`contract_no`),
 	KEY `idx_target_month` (`target_month`),
 	KEY `idx_payment_status` (`payment_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 
