@@ -268,7 +268,53 @@ FROM sme_project_list
 WHERE target_month is not null
 ORDER BY target_month DESC;
 
+-- ====================== this for prepare wa send to delay customer this month and last month ===================
+CREATE TABLE wa_script (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    script_type VARCHAR(255),
+    script_1 TEXT,
+    script_2 TEXT,
+    script_3 TEXT,
+    script_4 TEXT,
+    script_5 TEXT,
+    script_6 TEXT,
+    script_7 TEXT
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
+-- ==================== This for export WA bulk mssg for send WA
+SELECT 
+    spl.contract_no AS 'WA',
+    CONCAT(
+        ws.script_1, "
+", ws.script_2, spt.contract_no, ws.script_3, " ", spl.customer_name, "
+", 
+        ws.script_4, "
+", ws.script_5, "
+", ws.script_6," ",emc.staff_name," ",emc.main_contact, "
+", ws.script_7, " ", ems.staff_name, " ", ems.main_contact
+    ) AS 'BODY',
+    spt.contract_no AS 'custom_id' 
+FROM sme_projectlist_target spt
+LEFT JOIN sme_project_list spl ON CAST(spt.contract_no AS CHAR) = CAST(spl.contract_no AS CHAR)
+LEFT JOIN wa_script ws ON ws.script_type = 
+-- 'Col_This_1-5'
+-- 'Col_This_6-10'
+-- 'Col_This_11-15'
+-- 'Col_This_16-20'
+-- 'Col_This_21-25'
+-- 'Col_This_26-31'
+-- 'Col_Last_1-5'
+-- 'Col_Last_6-10'
+-- 'Col_Last_11-15'
+-- 'Col_Last_16-20'
+-- 'Col_Last_21-25'
+-- 'Col_Last_26-31'
+LEFT JOIN tabsme_Employees emc ON CAST(spl.collection_cc_staff AS CHAR) = CAST(emc.staff_no AS CHAR)
+LEFT JOIN tabsme_Employees ems ON CAST(spl.sale_staff AS CHAR) = CAST(ems.staff_no AS CHAR)
+WHERE spt.id NOT IN ( SELECT CAST(target_id AS CHAR) FROM sme_projectlist_collected spc2)
+and spl.target_month not in ('already paid')
+and spl.target_month = '2025-01-05'
+limit 10
 
 
 -- == Ways 2
