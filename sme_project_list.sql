@@ -219,9 +219,7 @@ target_month|spc_already_paid|
 
 
 
-
-
--- delete duplicate from sme_project_list
+-- 4. delete duplicate from sme_project_list
 DELETE FROM sme_project_list WHERE `id` IN (
 SELECT `id` FROM ( 
 		SELECT `id`, contract_no, target_month, date_created ,
@@ -237,31 +235,17 @@ WHERE row_numbers > 1
 );
 
 
--- delete duplicate from sme_project_list
-DELETE FROM sme_project_list WHERE `id` IN (
-SELECT `id` FROM ( 
-		SELECT `id`, 
-			ROW_NUMBER() OVER (
-				PARTITION BY `contract_no` 
-				ORDER BY `id` DESC,
-					target_month DESC
-			) AS row_numbers  
-		FROM sme_project_list
-	) AS t1
-WHERE row_numbers > 1 
-);
-
-
--- check the 
-SELECT null AS 'id', spl.contract_no AS 'contract_no', 
-	spl.target_month AS 'spl_target_month', spt.target_month AS 'spt_target_month',
+-- 5 Check the different 
+-- 5.1 check the target deduct or someone remove from today file
+SELECT spl.contract_no AS 'contract_no', 
+	spl.target_month AS 'spl_target_month', spl.payment_status, spl.seized_car , spt.target_month AS 'spt_target_month',
 	spl.now_amount_usd AS 'now_amount_usd' 
 FROM sme_project_list spl 
 LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
-WHERE ((spl.target_month = '2025-01-05' AND spt.target_month IS NULL)
-	OR (spl.target_month IS NULL AND spt.target_month = '2025-01-05'))
-	AND spl.date_created >= '2025-01-14 18:00'
-;
+WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
+
+
+
 
 
 /*
