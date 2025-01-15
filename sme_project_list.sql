@@ -224,7 +224,7 @@ target_month|spc_already_paid|
 -- delete duplicate from sme_project_list
 DELETE FROM sme_project_list WHERE `id` IN (
 SELECT `id` FROM ( 
-		SELECT `id`, contract_no, target_month, datetime_update ,
+		SELECT `id`, contract_no, target_month, date_created ,
 			ROW_NUMBER() OVER (
 				PARTITION BY `contract_no` 
 				ORDER BY DATE_FORMAT(date_created, '%Y-%m-%d') DESC,
