@@ -245,6 +245,29 @@ LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
 WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
 
 
+-- 5.2 delete the different target
+DELETE FROM sme_projectlist_target
+WHERE id IN (
+	SELECT spt.id
+	FROM sme_project_list spl 
+	LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
+	WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
+	)
+;
+
+
+
+-- 5.3 check the already paid deduct or someone remove from today file (still not correct)
+SELECT spl.contract_no AS 'contract_no',
+	spl.target_month AS 'spl_target_month', spl.payment_status, spl.seized_car , spt.target_month AS 'spt_target_month',
+	spl.now_amount_usd AS 'now_amount_usd' 
+FROM sme_project_list spl 
+LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
+LEFT JOIN sme_projectlist_collected spc ON (spt.id = spc.target_id)
+WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
+
+
+
 
 
 
