@@ -217,6 +217,33 @@ target_month|spc_already_paid|
   2025-01-05|            4376|
 
 
+-- Which contract number that is dff target
+SELECT * 
+FROM sme_projectlist_target spt 
+WHERE spt.target_month = '2024-12-05' 
+	AND spt.contract_no NOT IN ( 
+		SELECT contract_no 
+		FROM sme_project_list 
+		WHERE target_month = '2024-12-05' AND date_created >= '2025-01-16 10:00' )
+;
+-- 
+id  |contract_no|target_month|now_amount_usd|date_created       |date_updated       |
+----+-----------+------------+--------------+-------------------+-------------------+
+6709|2097765    |  2024-12-05|       1285.00|2025-01-15 11:29:04|2025-01-15 11:30:55|
+9719|2110143    |  2024-12-05|      24110.00|2025-01-15 11:29:04|2025-01-15 11:30:55|
+
+
+
+-- Which contract number that is dff already paid and seized car
+SELECT * 
+FROM sme_projectlist_collected spc 
+WHERE spc.target_month = '2024-11-05' 
+	AND spc.contract_no IN ( 
+		SELECT contract_no
+		FROM sme_project_list 
+		WHERE target_month = '2024-11-05' AND date_created >= '2025-01-16 10:00' and (payment_status != 'already paid' and seized_car != 'Got car'))
+;
+
 
 
 -- 4. delete duplicate from sme_project_list
