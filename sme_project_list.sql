@@ -173,15 +173,15 @@ LEFT JOIN (SELECT target_month, COUNT(*) AS spt_target FROM sme_projectlist_targ
 	) AS spt ON (spl.target_month = spt.target_month)
 LEFT JOIN (SELECT target_month, COUNT(*) AS spc_already_paid FROM sme_projectlist_collected GROUP BY target_month
 	) AS spc ON (spl.target_month = spc.target_month)
-WHERE spl.date_created >= '2025-01-15 15:30'
+	WHERE spl.date_created >= '2025-01-15 19:00'
 GROUP BY spl.target_month;
 -- 
 target_month|spl_target|spl_already_paid|spt_target|spc_already_paid|target_dff|already_paid_dff|
 ------------+----------+----------------+----------+----------------+----------+----------------+
             |      4425|             641|          |                |          |                |
-  2024-11-05|      6179|            6154|      6179|            6170|         0|             -16|
-  2024-12-05|      6225|            5906|      6225|            5913|         0|              -7|
-  2025-01-05|      5475|            4376|      5516|            4376|       -41|               0|
+  2024-11-05|      6179|            6154|      6179|            6171|         0|             -17|
+  2024-12-05|      6225|            5906|      6225|            5915|         0|              -9|
+  2025-01-05|      5475|            4376|      5475|            4376|         0|               0|
 
 
 -- 3.2 sub1
@@ -237,12 +237,12 @@ WHERE row_numbers > 1
 
 -- 5 Check the different 
 -- 5.1 check the target deduct or someone remove from today file
-SELECT spl.contract_no AS 'contract_no', 
-	spl.target_month AS 'spl_target_month', spl.payment_status, spl.seized_car , spt.target_month AS 'spt_target_month',
-	spl.now_amount_usd AS 'now_amount_usd' 
-FROM sme_project_list spl 
-LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
-WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
+	SELECT spl.contract_no AS 'contract_no', 
+		spl.target_month AS 'spl_target_month', spl.payment_status, spl.seized_car , spt.target_month AS 'spt_target_month',
+		spl.now_amount_usd AS 'now_amount_usd' 
+	FROM sme_project_list spl 
+	LEFT JOIN sme_projectlist_target spt on (spl.contract_no = spt.contract_no )
+	WHERE spl.target_month < spt.target_month OR (spl.target_month IS NULL AND spt.target_month IS NOT NULL)
 
 
 -- 5.2 delete the different target
