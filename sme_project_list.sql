@@ -318,6 +318,23 @@ FROM sme_project_list
 WHERE target_month is not null
 ORDER BY target_month DESC;
 
+
+-- For Aiy Sai report to Morikawa
+SELECT spl.contract_no, spl.seized_car, 
+	spt1.target_month, spc1.payment_status, spc1.payment_method, 
+	spt2.target_month, spc2.payment_status, spc2.payment_method, 
+	spt3.target_month, spc3.payment_status, spc3.payment_method
+FROM sme_project_list spl 
+LEFT JOIN sme_projectlist_target spt1 ON (spl.contract_no = spt1.contract_no AND spt1.target_month = DATE_FORMAT(CURDATE(), '%Y-%m-05') )
+LEFT JOIN sme_projectlist_target spt2 ON (spl.contract_no = spt2.contract_no AND spt2.target_month = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-05') )
+LEFT JOIN sme_projectlist_target spt3 ON (spl.contract_no = spt3.contract_no AND spt3.target_month = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 MONTH), '%Y-%m-05') )
+LEFT JOIN sme_projectlist_collected spc1 ON (spl.contract_no = spc1.contract_no AND spc1.target_month = DATE_FORMAT(CURDATE(), '%Y-%m-05') )
+LEFT JOIN sme_projectlist_collected spc2 ON (spl.contract_no = spc2.contract_no AND spc2.target_month = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-05') )
+LEFT JOIN sme_projectlist_collected spc3 ON (spl.contract_no = spc3.contract_no AND spc3.target_month = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 MONTH), '%Y-%m-05') );
+
+
+
+
 -- ====================== this for prepare wa send to delay customer this month and last month ===================
 CREATE TABLE wa_script (
     id INT PRIMARY KEY AUTO_INCREMENT,
