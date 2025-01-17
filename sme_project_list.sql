@@ -100,6 +100,13 @@ CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ------------------------------------ Workflow to update ------------------------------------
 
+
+#=========== check and fix Reason: SQL Error [1292] [22001]: Data truncation: Incorrect date value: '0000-00-00' for column `test`.`tbl collection`.`transfer date` at row 1 ======
+select @@global.sql_mode global, @@session.sql_mode session;
+set sql_mode = '', global sql_mode = '';
+
+
+
 -- 1 update sme_project list in spreadsheet Example: https://docs.google.com/spreadsheets/d/1iZIPNZDR4q5xnQMlXx8dc6W2nL2f9FMT5B2IikEZt_s/edit?gid=1031641098#gid=1031641098
 
 -- sheet [For_Frappe]
