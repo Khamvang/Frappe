@@ -91,6 +91,12 @@ from tabSME_Approach_list
 where approach_type in ('Dormant', 'Existing');
 
 
+-- update the wrong number
+update temp_sme_dor_inc
+set pbx_status = 'NO ANSWER', `date` = now()
+where customer_tel in ('9020', '9030') ;
+
+
 -- Export to server locahost database lalco_pbx table temp_sme_dor_inc
 select * from temp_sme_dor_inc;
 
