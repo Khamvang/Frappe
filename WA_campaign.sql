@@ -406,6 +406,7 @@ where emp.staff_status = 'Resigned'
 
 
 -- WA to Resigned employees for Sales dept manager
+-- WA file name: https://docs.google.com/spreadsheets/d/1NLJZ2DC4cDa6RiSyEqnku3CObtI_IoVbosKb1B9cDjw/edit?gid=1341526696#gid=1341526696
 SELECT 
 	concat('856', emp.main_contact ) `WHATSAPP`,
 	concat('ສະບາຍດີ ທ່ານ ',emp.first_name_lo,' ', emp.last_name_lo, ' ' , emp.main_contact  ,' ທີ່ຮັກແພງ,
