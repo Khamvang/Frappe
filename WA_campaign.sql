@@ -405,6 +405,25 @@ where emp.staff_status = 'Resigned'
 
 
 
+-- WA to Resigned employees for Sales dept manager
+SELECT 
+	concat('856', emp.main_contact ) `WHATSAPP`,
+	concat('ສະບາຍດີ ທ່ານ ', emp.main_contact  ,' ທີ່ຮັກແພງ',
+	'
+	ຂ້ອຍແມ່ນ ຫົວໜ້າພະແນກການຕະຫຼາດ ຂອງ LALCO ເດີ. ຖ້າເອື້ອນຍອ້າຍມີລູກຄ້າທີ່ເຄີຍຕິດຕາມ ຫຼື ວ່າມີລູກຄ້າສົນໃຈສາມາດເເນະນຳລູກຄ້າມາໄດ້ເດີ້ ລູກຄ້າເກົ່າກໍໄດ້ຄ່ານາຍໜ້າຄືກັນ 1,75 %  ຂອງດອກເບ້ຍທັງໝົດ ເເລ້ວ ເເນະນຳມາເດີ້
+	ແລະ ມີເງຶ່ອນໄຂ ພິເສດຄື ຖ້າເປັນລູກຄ້າເກົ່າທີ່ເຄີຍຈ່າຍດີ ແມ່ນດອກເບັ້ຍຫຼຸດລົງເປັນ 1.99% ແລະ ຖ້າເປັນລູກຄ້າໃໝ່ ປິດງວດຢູ່ບໍລິສັດອື່ນແມ່ນ ດອກເບັ້ຍ 1.29% ເດີເຈົ້າ.
+	ຫຼື ຖ້າຢາກກັບມາເຮັດວຽກຄືນ ຫຼື ມີໝູ່ຄູ່ພີ່ນ້ອງທີ່ຢາກໃຫ້ມາເຮັດວຽກຢູ່ ລາໂກ້ແມ່ນສາມາດຕິດຕໍ່ມາໄດ້ເດີເຈົ້າ.
+	ຢາລືມໂທຫາເດີ')
+	as `BODY`,
+	emp.name `custom_id`
+FROM tabsme_Sales_partner sp 
+LEFT JOIN tabsme_Employees emp ON (emp.staff_no = sp.refer_id)
+left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+WHERE sp.refer_type = 'staff' AND emp.staff_status = 'Resigned'
+	AND sme.dept_no = 17
+
+
+
 
 -- Dormant customer send for Credit
 select concat('856', substring(apl.customer_tel, 3)) `WHATSAPP`,
