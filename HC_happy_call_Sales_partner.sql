@@ -288,6 +288,161 @@ WHERE sp.owner_staff REGEXP '^[0-9]+$' ;
 
 
 
+-- ______________________________________________________ update resigned employee ______________________________________________________
+
+-- export from tblsme_employee and import to tabsme_sales_partner
+select from_unixtime(ep.creation, '%Y-%m-%d %H:%m:%s') `creation`, null `modified`, 'Administrator' `owner`, null `current_staff`, 
+	null as `owner_staff`, 
+	CONCAT(UCASE(LEFT(ep.staff_status, 1)), LCASE(SUBSTRING(ep.staff_status, 2))," - Staff") as `broker_type`, 
+	CONCAT(ep.name," (" ,ep.first_name_lo," ", ep.last_name_lo, " - ", ep.first_name_en," ",ep.last_name_en,")") as `broker_name`, 
+	case when left (right (REPLACE ( ep.main_contact, ' ', '') ,8),1) = '0' then CONCAT('903',right (REPLACE ( ep.main_contact, ' ', '') ,8))
+	    when length (REPLACE ( ep.main_contact, ' ', '')) = 7 then CONCAT('9030',REPLACE ( ep.main_contact, ' ', ''))
+	    else CONCAT('9020', right(REPLACE ( ep.main_contact, ' ', '') , 8))
+	end `broker_tel`,
+	null as `address_province_and_city`, 
+	null as `address_village`, null `broker_workplace`, 
+	null as `business_type`, 
+	null as `ever_introduced`, 
+	null as `contract_no`, '' as `rank`, ep.staff_no `refer_id`, 'staff' `refer_type`
+FROM tabsme_Employees ep
+ WHERE ep.staff_status  is not null
+
+-- remove duplicate 
+delete from tabsme_Sales_partner where name in (
+select `name` from ( 
+		select `name`, 
+			row_number() over (partition by `broker_tel` ORDER by broker_tel desc, broker_type ASC, refer_id desc) as row_numbers  
+		from tabsme_Sales_partner where `refer_type` = 'staff'
+	) as t1
+where row_numbers > 1 
+);
+
+
+-- Step 1: Get the next AUTO_INCREMENT value
+SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+
+-- Step 2: Construct the ALTER TABLE query
+SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
+
+-- Step 3: Prepare and execute the query
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 7.2 update
+update tabsme_Sales_partner sp
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
+left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
+left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
+left join tabsme_Employees te3 on (te3.email = sp.modified_by)
+left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
+set sp.current_staff = 
+	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
+		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
+		when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
+		else sp.current_staff
+	end,
+	sp.owner_staff = tmspd.owner_staff
+where sp.broker_type = 'Resigned - Staff';
+
+
+-- 7.3 Update the case which is not active sales to assign again
+-- Check how many cases
+SELECT sp.name, sp.current_staff, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+from tabsme_Sales_partner sp 
+left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+where sp.broker_type = 'Resigned - Staff' and sme.id is null;
+
+/*
+This query does the following:
+
+1. Calculates the total cases and eligible staff.
+2. Prepares temporary tables for staff and cases, assigning row numbers for fair distribution.
+3. Distributes cases fairly to staff using a round-robin approach with adjustments for extra cases.
+4. Updates the current_staff field in tabsme_Sales_partner with the assigned staff.
+5. Cleans up temporary tables.
+*/
+
+
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+    SELECT COUNT(*)
+    FROM tabsme_Sales_partner sp
+    LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+    WHERE sp.broker_type = 'Resigned - Staff' AND sme.id IS NULL
+);
+
+SET @num_staff = (
+    SELECT COUNT(*)
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank <= 49 
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.rank <= 49 
+  AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+WHERE sp.broker_type = 'Resigned - Staff' AND sme.id IS NULL;
+
+-- Step 4: Assign cases to staff fairly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+    SELECT c.case_name, 
+           CASE
+               WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+                   MOD(c.row_num - 1, @num_staff) + 1
+               ELSE
+                   MOD(c.row_num - 1, @num_staff) + 1
+           END AS staff_row
+    FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
+
+
+
+
+-- 8) Prepare table temp_sme_pbx_sp, run this query on frappe server 13.250.153.252
+delete from temp_sme_pbx_SP
+
+replace into temp_sme_pbx_SP
+select sp.name `id`, sp.broker_tel, null `pbx_status`, null `date`, sp.current_staff 
+from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+where sme.`unit_no` is not null;
+
+
+SELECT * FROM tabsme_Sales_partner sp
+WHERE sp.broker_type = 'Resigned - Staff'
+and current_staff is not null
+
+
+-- Export for sales follow
+
+
+
+
+
+
 -- form for import data from csv to frappe 
 select current_staff, owner_staff, broker_type, broker_name, broker_tel, address_province_and_city, address_village, broker_workplace, business_type, ever_introduced, contract_no, `rank`, refer_id  
 from tabsme_Sales_partner 
