@@ -389,6 +389,7 @@ ORDER by tmsp.no_of_all_introduce DESC;
 
 
 -- WA Send to SP Sales partner of Resigned employees for Sales deptmant manager
+-- https://docs.google.com/spreadsheets/d/1iqJREEKcaNPTp9eorsccKEclTNh1QeAiyZSHn9YcZUs/edit?gid=1077459785#gid=1077459785
 select -- count(sp.name) -- sp.name, tmsp.no_of_all_introduce
 	concat('856',SUBSTRING(sp.broker_tel, 3)) WHATSAPP,
 	CONCAT('ສະບາຍດີ! ທ່ານ ', sp.broker_name,' ' ,SUBSTRING(sp.broker_tel, 2),' ທີ່ຮັກແພງ.
