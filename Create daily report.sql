@@ -49,7 +49,8 @@ BEGIN
         END AS `rank_update_SABC`,
         bp.`visit_or_not`,
         bp.`ringi_status`,
-        bp.`disbursement_date_pay_date`
+        bp.`disbursement_date_pay_date`,
+	bp.usd_loan_amount
     FROM
         tabSME_BO_and_Plan bp
     LEFT JOIN
@@ -91,7 +92,7 @@ EXECUTE EVENT `refresh_sme_pre_daily_report`;
 
 
 -- 5) Drop the Existing Event
-DROP EVENT IF EXISTS `insert_to_sme_pre_daily_report`;
+DROP EVENT IF EXISTS `refresh_sme_pre_daily_report`;
 
 
 
