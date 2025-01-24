@@ -104,6 +104,23 @@ where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 
 
 
+-- 3) SABC created in Dec2024 & Jan2025 -- do this task in 2024-01-24
+insert into temp_sme_pbx_BO_special_management
+select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
+	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
+	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+	bp.`usd_loan_amount`,
+	'SABC created in Dec2024 & Jan2025' as `management_type`
+from tabSME_BO_and_Plan bp 
+where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
+	or bp.rank_update in ('S', 'A', 'B', 'C') )
+	and bp.contract_status not in ('Contracted', 'Cancelled')
+	and bp.creation >= '2024-12-01'
+;
+
+
+
+
 
 -- 3) F created in 4-5-6 months ago -- CC   RANK F  ໂທ 4-5-6 ເດືອນ ຍ້ອນຫລັງ 
 insert into temp_sme_pbx_BO_special_management
@@ -163,6 +180,11 @@ WHERE sme.`rank` BETWEEN 0 AND 49 -- for UL and above
 	AND sme.retirement_date IS NULL AND te.name IS NOT NULL 
 	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
 ORDER BY sme.id ASC;
+
+
+
+
+
 
 
 
