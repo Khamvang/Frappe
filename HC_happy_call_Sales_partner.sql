@@ -250,13 +250,13 @@ select sp.name `id`, sp.refer_id `lms_broker_id` , tmsp.no_of_introduces `all_in
 		when tmsp3.no_of_introduces >= 3 then 'Silver'
 		when tmsp3.no_of_introduces >= 0 then 'Normal'
 		else 'Normal'
-	end `intro_rankings`,
+	end `intro_rankings_3months`,
 	case when tmsp3.no_of_introduces >= 10 then '4%'
 		when tmsp3.no_of_introduces >= 6 then '3.8%'
 		when tmsp3.no_of_introduces >= 3 then '3.36%'
 		when tmsp3.no_of_introduces >= 0 then '3.5%'
 		else '3.5%'
-	end `commission_rate`,
+	end `commission_rate_should_be`,
 	sp.current_staff, sme.staff_no, sp.owner_staff `sp_owner_staff`, tmspd.owner_staff `tmspd_owner_staff`
 from tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
