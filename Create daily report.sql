@@ -25,7 +25,7 @@ DELIMITER $$
 
 CREATE EVENT refresh_sme_pre_daily_report
 ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-23 23:00:00'
+STARTS '2025-01-23 23:00:00'
 DO
 BEGIN
     -- Step 1: Delete old data for today's report
@@ -33,7 +33,7 @@ BEGIN
     WHERE date_report = DATE(NOW());
 
     -- Step 2: Insert new data into the report table
-    INSERT INTO `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`)
+    INSERT INTO `sme_pre_daily_report` (`date_report`, `bp_name`, `rank_update`, `now_result`, `rank_update_SABC`, `visit_or_not`, `ringi_status`, `disbursement_date_pay_date`, `usd_loan_amount`)
     SELECT
         DATE(NOW()) AS `date_report`,
         bp.name AS `bp_name`,
