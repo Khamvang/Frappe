@@ -183,12 +183,65 @@ ORDER BY sme.id ASC;
 
 
 
--- 7) Prepare SABC Over 1 Year for 30 people from the Branch + 15 New New branch call
+-- 7) SABC Over 1 Year for 30 people from the Branch + 15 New New branch call
+-- https://docs.google.com/spreadsheets/d/1joh269ZrQ9z0z7_6FRHGzZQfkwqVFt-H2sLCIwm0hmg/edit?gid=565944164#gid=565944164
 SELECT 
 	NULL AS `id`, id AS `bp_name`, customer_tel, NULL AS `current_staff` , `type` , month_type , 'SABC Over 1 Year' AS `management_ype`
 FROM temp_sme_pbx_BO
 WHERE month_type > 12 and `type` in ('S', 'A', 'B', 'C');
 
+
+
+-- 8) SABC Cancelled from 2024 to Jan2025 for 30 people from the Branch + 15 New New branch call
+select null as `id`, bp.name as `bp_name`, bp.customer_tel, null `pbx_status`, null `date`, NULL AS `current_staff`, 
+	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
+	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+	bp.`usd_loan_amount`,
+	'SABC Cancelled 2024 to Jan2025' as `management_type`
+from tabSME_BO_and_Plan bp 
+where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
+	or bp.rank_update in ('S', 'A', 'B', 'C') )
+	and bp.contract_status IN ('Cancelled')
+	and bp.modified >= '2024-01-30'
+	AND bp.name not in (select bp_name from temp_sme_pbx_BO_special_management where management_type = 'SABC Over 1 Year');
+
+
+
+
+-- Export for 7 & 8, need to change the tspbsm.management_type = 'SABC Over 1 Year'
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	bp.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	bp.rank_update , 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= date_format(curdate(), '%Y-%m-31')  then 'called' else 'x' end as `call_ status`,
+	bp.visit_or_not ,
+	bp.ringi_status ,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	null as `is_own`,
+	bp.own_salesperson
+from tabSME_BO_and_Plan bp 
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC Over 1 Year')
+left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+order by sme.id asc;
 
 
 
