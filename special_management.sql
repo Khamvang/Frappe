@@ -183,13 +183,16 @@ ORDER BY sme.id ASC;
 
 
 
+-- 7) Prepare SABC Over 1 Year for 30 people from the Branch + 15 New New branch call
+SELECT 
+	NULL AS `id`, id AS `bp_name`, customer_tel, NULL AS `current_staff` , `type` , month_type , 'SABC Over 1 Year' AS `management_ype`
+FROM temp_sme_pbx_BO
+WHERE month_type > 12 and `type` in ('S', 'A', 'B', 'C');
 
 
 
 
-
-
--- 7) Export for Sales 
+-- Export for Sales 
 select bp.modified `Timestamp`, concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', name) `Edit`,
 	sme.dept `DEPT`, 
 	sme.sec_branch `SECT`, 
