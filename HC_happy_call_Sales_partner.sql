@@ -26,7 +26,7 @@ CREATE TABLE `temp_sme_Sales_partner` (
 
 
 -- Run on server: lalco 18.140.117.112
--- 2) export from LMS to Frappe on table name temp_sme_Sales_partner 
+-- 2) export from LMS to Frappe on table name temp_sme_Sales_partner as TRUNCATE
 select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null `modified`, 'Administrator' `owner`, null `current_staff`, 
 	upper(case when u2.nickname = 'Mee' then concat(u.staff_no, ' - ', u.nickname) 
 		when u2.staff_no is not null then concat(u2.staff_no, ' - ', u2.nickname) else concat(u.staff_no, ' - ', u.nickname)
