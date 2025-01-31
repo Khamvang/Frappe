@@ -56,7 +56,7 @@ order by address_province_and_city asc;
 
 
 -- G rank list for all each province and district
-select name 'id', customer_tel 'contact_no', customer_name 'name', 
+select null 'id', customer_tel 'contact_no', customer_name 'name', 
 	left(address_province_and_city, locate(' -', address_province_and_city)-1) 'province_eng', null 'province_laos',
 	right(address_province_and_city, (length(address_province_and_city) - locate('- ', address_province_and_city) -1 ) ) 'district_eng', null 'district_laos',
 	address_village 'village', 
