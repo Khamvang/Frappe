@@ -65,11 +65,11 @@ BEGIN
         AND bp.contract_status != 'Contracted'
         AND bp.contract_status != 'Cancelled'
         AND bp.`type` IN ('New', 'Dor', 'Inc')
-        AND CASE
-            WHEN bp.callcenter_of_sales IS NULL OR bp.callcenter_of_sales = ''
-            THEN sme.unit_no
-            ELSE smec.unit_no
-        END IS NOT NULL
+	        AND CASE
+	            WHEN bp.callcenter_of_sales IS NULL OR bp.callcenter_of_sales = ''
+	            THEN sme.unit_no
+	            ELSE smec.unit_no
+        	END IS NOT NULL
     ORDER BY
         sme.id ASC;
 END$$
