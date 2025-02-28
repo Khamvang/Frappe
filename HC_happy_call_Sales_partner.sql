@@ -137,7 +137,7 @@ left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 where sp.refer_type = 'LMS_Broker';
 */
 
--- 7.2 update
+-- 7.2 update , this will take sometime to complete the query
 update tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
