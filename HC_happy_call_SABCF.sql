@@ -90,7 +90,7 @@ set bp.staff_no = tb.current_staff ;
 
 
 
--- draft
+-- SABC 1 Year
 select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
 	bp.modified as `Timestamp`,
 	bp.name as `id`, 
@@ -110,7 +110,7 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	is_sales_partner as `SP_rank`,
 	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
 	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
-	case when bp.modified >= '2024-10-01'  then 'called' else 'x' end as `call_ status`,
+	case when bp.modified >= date_format(curdate(), '%Y-%m-01')  then 'called' else 'x' end as `call_ status`,
 	bp.visit_or_not ,
 	bp.ringi_status ,
 	bp.disbursement_date_pay_date ,
@@ -121,9 +121,11 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	case when sme.dept is null then 'Resigned' when sme2.dept is null then 'Resigned'
 		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
-	end as `is_own`
+	end as `is_own`,
+	bp.own_salesperson
 from tabSME_BO_and_Plan bp left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
 left join sme_org sme2 on (case when locate(' ', bp.own_salesperson) = 0 then bp.own_salesperson else left(bp.own_salesperson, locate(' ', bp.own_salesperson)-1) end = sme2.staff_no)
--- left join sme_org smec on (regexp_replace(bp.callcenter_of_sales  , '[^[:digit:]]', '') = smec.staff_no)
-inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
+inner join temp_sme_pbx_BO tb on (tb.id = bp.name) 
+where bp.name in (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type <= 12)
+order by sme.id asc ;
 
