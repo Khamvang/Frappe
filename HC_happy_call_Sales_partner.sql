@@ -190,6 +190,7 @@ This query does the following:
 5. Cleans up temporary tables.
 */
 
+-- __________________________________________ UL
 -- Assign to UL for all the cases
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
@@ -245,7 +246,7 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
--- __________________________________________
+-- __________________________________________ TL
 -- Assign to UL only the cases that lasted introducion within 3 months
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
@@ -307,7 +308,7 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
--- __________________________________________
+-- __________________________________________ Sales+CC
 -- Assign to TL only the cases that lasted introducion between 4 - 12 months
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
