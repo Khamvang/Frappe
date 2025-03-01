@@ -164,11 +164,18 @@ SELECT sp.name,
 	sp.current_staff, 
 	ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num,
 	tmspd.creation,
-	TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) AS `latest_month`
+	TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) AS `latest_month`,
+	CASE 
+		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3 THEN 'UL'
+		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 12 THEN 'TL'
+		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12 THEN 'Sales+CC'
+		ELSE NULL
+	END AS `title_need_to_assign`
 from tabsme_Sales_partner sp 
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
 where sp.refer_type = 'LMS_Broker' and sme.id is null;
+
 
 /*
 This query does the following:
