@@ -160,9 +160,14 @@ where sp.refer_type = 'LMS_Broker';
 
 -- 7.3 Update the case which is not active sales to assign again
 -- Check how many cases
-SELECT sp.name, sp.current_staff, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+SELECT sp.name, 
+	sp.current_staff, 
+	ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num,
+	tmspd.creation,
+	TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) AS `latest_month`
 from tabsme_Sales_partner sp 
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
+left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
 where sp.refer_type = 'LMS_Broker' and sme.id is null;
 
 /*
