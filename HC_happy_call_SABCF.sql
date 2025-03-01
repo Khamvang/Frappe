@@ -9,7 +9,14 @@ CREATE TABLE `temp_sme_pbx_BO` (
 	`current_staff` varchar(255) DEFAULT NULL,
 	`type` varchar(255) DEFAULT NULL,
 	`month_type` int(11) DEFAULT NULL COMMENT '3=3 months or less, 6=6months or less, 9=9months or less, 12=12months or less',
-	PRIMARY KEY (`id`)
+	`usd_loan_amount` DECIMAL(20,2) NOT NULL DEFAULT 0,
+	`is_own` VARCHAR(255) DEFAULT NULL
+	PRIMARY KEY (`id`),
+	KEY idx_current_staff (current_staff),
+	KEY idx_type (type),
+	KEY idx_month_type (month_type),
+	KEY idx_usd_loan_amount (usd_loan_amount),
+	KEY idx_is_own (is_own)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
