@@ -69,7 +69,7 @@ from temp_sme_Sales_partner;
 
 delete from tabsme_Sales_partner where name in (
 select `name` from ( 
-		select `name`, row_number() over (partition by `broker_tel` order by field(`refer_type`, "LMS_Broker", "tabSME_BO_and_Plan", "5way"), 
+		select `name`, row_number() over (partition by `broker_tel`, `refer_type` order by field(`refer_type`, "LMS_Broker", "tabSME_BO_and_Plan", "5way"), 
 			field(`broker_type`, "SP - ນາຍໜ້າໃນອາດີດ", "Y - ລູກຄ້າເກົ່າ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "Z - ລູກຄ້າປັດຈຸບັນ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "X - ລູກຄ້າໃໝ່ ທີ່ສົນໃຈເປັນນາຍໜ້າ", "5way - 5ສາຍພົວພັນ"), `name` asc) as row_numbers  
 		from tabsme_Sales_partner
 	) as t1
