@@ -4,24 +4,27 @@
 
 -- 1) create table temp_sme_Sales_partner
 CREATE TABLE `temp_sme_Sales_partner` (
-  `contract_no` int(140) NOT NULL AUTO_INCREMENT,
-  `creation` datetime(6) DEFAULT NULL,
-  `modified` datetime(6) DEFAULT NULL,
-  `owner` varchar(140) DEFAULT NULL,
-  `current_staff` varchar(140) DEFAULT NULL,
-  `owner_staff` varchar(140) DEFAULT NULL,
-  `broker_type` varchar(140) DEFAULT NULL,
-  `broker_name` varchar(140) DEFAULT NULL,
-  `broker_tel` varchar(140) DEFAULT NULL,
-  `address_province_and_city` varchar(140) DEFAULT NULL,
-  `address_village` varchar(140) DEFAULT NULL,
-  `broker_workplace` varchar(140) DEFAULT NULL,
-  `business_type` varchar(140) DEFAULT NULL,
-  `ever_introduced` varchar(140) DEFAULT NULL,
-  `rank` varchar(140) DEFAULT NULL,
-  `refer_id` int(11) NOT NULL DEFAULT 0,
-  `refer_type` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`contract_no`)
+	`contract_no` int(140) NOT NULL AUTO_INCREMENT,
+	`creation` datetime(6) DEFAULT NULL,
+	`modified` datetime(6) DEFAULT NULL,
+	`owner` varchar(140) DEFAULT NULL,
+	`current_staff` varchar(140) DEFAULT NULL,
+	`owner_staff` varchar(140) DEFAULT NULL,
+	`broker_type` varchar(140) DEFAULT NULL,
+	`broker_name` varchar(140) DEFAULT NULL,
+	`broker_tel` varchar(140) DEFAULT NULL,
+	`address_province_and_city` varchar(140) DEFAULT NULL,
+	`address_village` varchar(140) DEFAULT NULL,
+	`broker_workplace` varchar(140) DEFAULT NULL,
+	`business_type` varchar(140) DEFAULT NULL,
+	`ever_introduced` varchar(140) DEFAULT NULL,
+	`rank` varchar(140) DEFAULT NULL,
+	`refer_id` int(11) NOT NULL DEFAULT 0,
+	`refer_type` varchar(255) DEFAULT NULL,
+	PRIMARY KEY (`contract_no`),
+	KEY idx_creation (creation),
+	KEY idx_refer_id (refer_id),
+	KEY idx_refer_type (refer_type)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
@@ -187,7 +190,7 @@ This query does the following:
 5. Cleans up temporary tables.
 */
 
-
+-- Assign to UL for all the cases
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
     SELECT COUNT(*)
@@ -240,6 +243,194 @@ SET sp.current_staff = s.staff_name;
 -- Step 5: Clean up temporary tables
 DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
+
+
+-- __________________________________________
+-- Assign to UL only the cases that lasted introducion within 3 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+    SELECT COUNT(*)
+    FROM tabsme_Sales_partner sp
+   	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+   	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+   	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+    	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3
+);
+
+SET @num_staff = (
+    SELECT COUNT(*)
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank <= 49 
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.rank <= 49 
+  AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3;
+
+
+
+-- Step 4: Assign cases to staff fairly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+    SELECT c.case_name, 
+           CASE
+               WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+                   MOD(c.row_num - 1, @num_staff) + 1
+               ELSE
+                   MOD(c.row_num - 1, @num_staff) + 1
+           END AS staff_row
+    FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
+
+
+-- __________________________________________
+-- Assign to TL only the cases that lasted introducion between 4 - 12 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+    SELECT COUNT(*)
+    FROM tabsme_Sales_partner sp
+   	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+   	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+   	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+    	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) BETWEEN 4 AND 12
+);
+
+SET @num_staff = (
+    SELECT COUNT(*)
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank BETWEEN 50 AND 69
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.rank BETWEEN 50 AND 69
+  AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) BETWEEN 4 AND 12;
+
+
+
+-- Step 4: Assign cases to staff fairly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+    SELECT c.case_name, 
+           CASE
+               WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+                   MOD(c.row_num - 1, @num_staff) + 1
+               ELSE
+                   MOD(c.row_num - 1, @num_staff) + 1
+           END AS staff_row
+    FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
+
+
+-- ___________________________________
+-- Assign to Sales+CC only the cases that lasted introducion Over 12 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+    SELECT COUNT(*)
+    FROM tabsme_Sales_partner sp
+   	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+   	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+   	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+    	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12
+);
+
+SET @num_staff = (
+    SELECT COUNT(*)
+    FROM sme_org sme
+    LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+    WHERE sme.rank >= 70
+      AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.rank >= 70
+  AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no  from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12 ;
+
+
+
+-- Step 4: Assign cases to staff fairly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+    SELECT c.case_name, 
+           CASE
+               WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+                   MOD(c.row_num - 1, @num_staff) + 1
+               ELSE
+                   MOD(c.row_num - 1, @num_staff) + 1
+           END AS staff_row
+    FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
+
+
 
 
 
