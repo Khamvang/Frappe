@@ -161,7 +161,7 @@ where sp.refer_type = 'LMS_Broker';
 -- 7.3 Update the case which is not active sales to assign again
 -- Check how many cases
 SELECT sp.name, 
-	sp.current_staff, 
+	sp.current_staff AS `latest_staff`, 
 	ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num,
 	tmspd.creation,
 	TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) AS `latest_month`,
