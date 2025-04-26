@@ -78,7 +78,7 @@ left join tblbusinesstype bt on (bt.code = b.business_type)
 left join tblprovince pr on (b.address_province = pr.id)
 left join tblcity ci on (b.address_city = ci.id)
 left join tblvillage vi on (b.address_village_id = vi.id)
-LEFT JOIN tblbcelrates br ON (br.currency_date = '2025-03-12')
+LEFT JOIN tblbcelrates br ON (br.currency_date = CURDATE() - INTERVAL 1 DAY)
 where c.status in (4,6,7) and p.broker_id <> 0
 order by c.contract_no desc;
 
@@ -118,7 +118,7 @@ from sme_bo_and_plan_id_seq;
 
 -- 2nd method: 
 -- Step 1: Get the next AUTO_INCREMENT value
-SET @next_id = (SELECT MAX(id) + 1 FROM tabsme_Sales_partner);
+SET @next_id = (SELECT MAX(name) + 1 FROM tabsme_Sales_partner);
 
 -- Step 2: Construct the ALTER TABLE query
 SET @query = CONCAT('ALTER TABLE tabsme_Sales_partner AUTO_INCREMENT=', @next_id);
@@ -204,11 +204,12 @@ left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
 set sp.current_staff = 
 	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
 		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
-		when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
+		-- when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
 		else sp.current_staff
 	end,
 	sp.owner_staff = tmspd.owner_staff
-where sp.refer_type = 'LMS_Broker';
+where sp.refer_type = 'LMS_Broker'
+;
 
 
 
@@ -242,8 +243,8 @@ This query does the following:
 5. Cleans up temporary tables.
 */
 
--- __________________________________________ UL
--- Assign to UL for all the cases
+/*
+-- Assign to UL for all the cases 
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
 		SELECT COUNT(*)
@@ -296,9 +297,10 @@ SET sp.current_staff = s.staff_name;
 -- Step 5: Clean up temporary tables
 DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
+*/
 
 
--- __________________________________________ TL
+-- __________________________________________ UL  __________________________________________
 -- Assign to UL only the cases that lasted introducion within 3 months
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
@@ -360,7 +362,7 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
--- __________________________________________ Sales+CC
+-- __________________________________________ TL  __________________________________________
 -- Assign to TL only the cases that lasted introducion between 4 - 12 months
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
@@ -422,7 +424,7 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
--- ___________________________________
+-- ___________________________________ Sales+CC ___________________________________
 -- Assign to Sales+CC only the cases that lasted introducion Over 12 months
 -- Step 1: Calculate total rows and fair distribution
 SET @total_rows = (
@@ -484,7 +486,7 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
-
+-- ___________________________________ End ___________________________________
 
 
 
@@ -577,8 +579,8 @@ select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`de
 	when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'SABC' else 'no' 
 end `introduce status`,
 	sp.send_wa, sp.wa_date, 
-	case when sp.send_wa != '' and sp.wa_date >= '2025-03-01' then 'Sent' else 'x' end `wa_send_status`,
-	case when sp.modified >= '2025-03-01'  then 'called' else 'x' end `call_ status`,
+	case when sp.send_wa != '' and sp.wa_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'Sent' else 'x' end `wa_send_status`,
+	case when sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01')  then 'called' else 'x' end `call_ status`,
 	timestampdiff(month,creation, now()) as `month_introduce`,
 	shr.shr_prospect AS `shr_prospect`,
 	shr.shr_will_contract AS `shr_will_contract`, 

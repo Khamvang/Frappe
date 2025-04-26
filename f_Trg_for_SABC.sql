@@ -223,22 +223,26 @@ SHOW TRIGGERS LIKE 'tabSME_BO_and_Plan';
 SELECT *  FROM tabSME_BO_and_Plan ORDER BY name DESC;
 
 
-SELECT name, sp_id, own_salesperson, staff_no FROM tabSME_BO_and_Plan
-WHERE sp_id > 0
 
 
--- _____________________________________________ Prospect customer from Sales partner ________________________________________ 
-ALTER TABLE tabSME_BO_and_Plan ADD sp_id INT(11) NOT NULL DEFAULT 0 COMMENT 'col name from table tabsme_Sales_partner';
+
+-- _____________________________________________ 1. Prospect customer from Sales partner ________________________________________ 
 
 -- Insert
 INSERT INTO tabSME_BO_and_Plan (
 	`creation`,
-	`sp_id`,
+	`owner`,
+	`modified_by`,
+	`refer_id`,
+	`refer_type`,
 	`staff_no`,
 	`own_salesperson`,
 	`customer_name` ,
 	`customer_tel` ,
 	`type` ,
+	`is_sales_partner`,
+	`approch_list`,
+	`visit_or_not`,
 	`usd_loan_amount` ,
 	`normal_bullet` ,
 	`disbursement_date_pay_date` ,
@@ -248,17 +252,33 @@ INSERT INTO tabSME_BO_and_Plan (
 	`model` ,
 	`rank1`,
 	`rank_update`,
+	`customer_card`,
+	`ringi_status`,
 	`ringi_comment`
 	)
-	
+
 SELECT 
 	CURRENT_TIMESTAMP AS `creation` ,
-	sp.name AS `sp_id`, 
+	sp.modified_by AS `owner`,
+	sp.modified_by AS `modified_by`,
+	sp.name AS `refer_id`, 
+	'tabsme_Sales_partner' AS `refer_type`,
 	sp.current_staff AS `staff_no` ,
 	sp.current_staff AS `own_salesperson` ,
 	sp.customer_name AS `customer_name` ,
 	sp.customer_tel AS `customer_tel` ,
 	sp.customer_type AS `type` ,
+	'' AS `is_sales_partner`,
+	CASE
+		WHEN sp.refer_type = 'LMS_Broker' THEN '④ Sales partner ທີ່ເຄີຍແນະນຳໃນອາດີດ'
+		WHEN sp.refer_type = 'tabSME_BO_and_Plan' AND SUBSTRING_INDEX(`broker_type`, ' ', 1) = 'X' THEN '③-3​ Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ສົນໃຈ​)'
+		WHEN sp.refer_type = 'tabSME_BO_and_Plan' AND SUBSTRING_INDEX(`broker_type`, ' ', 1) = 'Y' THEN '③-2 Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ເກົ່າ​)'
+		WHEN sp.refer_type = 'tabSME_BO_and_Plan' AND SUBSTRING_INDEX(`broker_type`, ' ', 1) = 'Z' THEN '③-1 Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ປັດຈຸບັນ​)'
+		WHEN sp.refer_type = '5way' THEN '①-4 5ສາຍພົວພັນ (ທີ່ເຮັດວຽກຢູບ່ອນອື່ນໆ ນອກຈາກ 3ຂໍ້ເທິງ)'
+		WHEN sp.refer_type = 'staff' THEN '⑥ Resigned Employees ພະນັກງານອອກວຽກ'
+		ELSE NULL
+	END AS `approch_list`,
+	'No - ຍັງບໍ່ໄດ້ລົງຢ້ຽມຢາມ' AS `visit_or_not`,
 	CEIL(
 	    COALESCE(sp.amount, 0) * 
 	    (CASE 
@@ -276,38 +296,99 @@ SELECT
 	sp.model AS `model` ,
 	sp.customer_rank AS `rank1`,
 	sp.customer_rank AS `rank_update`,
+	'No - ຍັງບໍ່ມີບັດ' AS `customer_card`,
+	'Not Ringi' AS `ringi_status`,
 	sp.remark AS `ringi_comment`
 FROM tabsme_Sales_partner sp
-WHERE sp.modified >= '2025-03-01'
-	AND sp.customer_name IS NOT NULL AND sp.customer_name != ''
+WHERE sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+	AND sp.customer_name IS NOT NULL 
+	AND sp.customer_name != ''
+	AND sp.customer_name != '0'
+	AND sp.customer_tel IS NOT NULL
+	AND sp.customer_tel != ''
 	AND sp.customer_rank IS NOT NULL
+	AND sp.customer_rank IN ('S','A','B','C')
+	AND sp.name NOT IN (SELECT refer_id FROM tabSME_BO_and_Plan WHERE refer_type = 'tabsme_Sales_partner')
 ;
 
 
 
-①-1 5ສາຍພົວພັນ (ທີ່ເຮັດວຽກຢູ່ ບໍລິສັດການເງິນ ເຊັ່ນ: ທະນາຄານ, ບ/ສ ສິນເຊື່ອ...)
-①-2 5ສາຍພົວພັນ (ທີ່ເຮັດວຽກຢູ່ ຮ້ານ​ຂາຍລົດ / ຮ້ານ​ສ້ອມ​ແປງລົດ​)
-①-4 5ສາຍພົວພັນ (ທີ່ເຮັດວຽກຢູບ່ອນອື່ນໆ ນອກຈາກ 3ຂໍ້ເທິງ)
-② ຈາກ Facebook
-③-1 Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ປັດຈຸບັນ​)
-③-2 Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ເກົ່າ​)
-③-3​ Sales partner (ທີ່ເປັນລູກ​ຄ້າ​ສົນໃຈ​)
-③-4​ ໄດ້ຈາກການໂທ ແລະ ຫາດ້ວຍຕົນເອງ
-④ Sales partner ທີ່ເຄີຍແນະນຳໃນອາດີດ
-④ Sales partner ຂອງພະນັກງານອອກວຽກ
-⑤ ຈາກການໂທ 200-3-3-1 ຂອງ CC ພາຍໃຕ້ຕົນເອງ
-⑥ ແນະນໍາຈາກ ພະແນກພາຍໃນ
-⑦ ປິດງວດຈາກບໍລິສັດຄູ່ແຂ່ງ
-⑧HC ລູກຄ້າເກົ່າ - ຜູ້ກູ້
-⑧HC ລູກຄ້າເກົ່າ - ຜູ້ຄ້ຳ
-⑧HC ລູກຄ້າເກົ່າ - ຄົນສຳຮອງ
-⑨HC ລູກຄ້າປັດຈຸບັນ - ຜູ້ກູ້
-⑨HC ລູກຄ້າປັດຈຸບັນ - ຜູ້ຄ້ຳ
-⑨HC ລູກຄ້າປັດຈຸບັນ - ຄົນສຳຮອງ
+-- _____________________________________________ 2. Prospect customer from Approach list ________________________________________ 
+
+-- Insert
+INSERT INTO tabSME_BO_and_Plan (
+	`creation`,
+	`owner`,
+	`modified_by`,
+	`refer_id`,
+	`refer_type`,
+	`staff_no`,
+	`own_salesperson`,
+	`customer_name` ,
+	`customer_tel` ,
+	`type` ,
+	`is_sales_partner`,
+	`approch_list`,
+	`visit_or_not`,
+	`usd_loan_amount` ,
+	`normal_bullet` ,
+	`disbursement_date_pay_date` ,
+	`address_province_and_city` ,
+	`village` ,
+	`maker` ,
+	`model` ,
+	`rank1`,
+	`rank_update`,
+	`customer_card`,
+	`ringi_status`,
+	`ringi_comment`
+	)
+SELECT 
+	apl.modified AS `creation` ,
+	apl.modified_by AS `owner`,
+	apl.modified_by AS `modified_by`,
+	apl.name AS `refer_id`, 
+	'tabSME_Approach_list' AS `refer_type`,
+	apl.staff_no AS `staff_no` ,
+	apl.own_salesperson AS `own_salesperson` ,
+	apl.customer_name AS `customer_name` ,
+	apl.customer_tel AS `customer_tel` ,
+	CASE
+		WHEN apl.approach_type = 'Dormant' THEN 'Dor'
+		WHEN apl.approach_type = 'Existing' THEN 'Inc'
+		ELSE NULL
+	END AS `type` ,
+	'' AS `is_sales_partner`,
+	CASE
+		WHEN apl.approach_type = 'Dormant' THEN '⑧HC ລູກຄ້າເກົ່າ - ຜູ້ກູ້'
+		WHEN apl.approach_type = 'Existing' THEN '⑨HC ລູກຄ້າປັດຈຸບັນ - ຜູ້ກູ້'
+		ELSE NULL
+	END AS `approch_list`,
+	'No - ຍັງບໍ່ໄດ້ລົງຢ້ຽມຢາມ' AS `visit_or_not`,
+	apl.usd_loan_amount AS `usd_loan_amount`,
+	apl.normal_bullet AS `normal_bullet` ,
+	apl.disbursement_date_pay_date AS `disbursement_date_pay_date` ,
+	apl.address_province_and_city AS `address_province_and_city` ,
+	apl.village AS `village` ,
+	apl.maker AS `maker` ,
+	apl.model AS `model` ,
+	apl.rank_update AS `rank1`,
+	apl.rank_update AS `rank_update`,
+	apl.customer_card AS `customer_card`,
+	apl.ringi_status AS `ringi_status`,
+	apl.ringi_comment AS `ringi_comment`
+FROM tabSME_Approach_list apl
+WHERE apl.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+	AND apl.name NOT IN (SELECT refer_id FROM tabSME_BO_and_Plan WHERE refer_type = 'tabSME_Approach_list')
+	AND apl.rank_update IN ('S','A','B','C')
+;
 
 
 
-/*
+
+
+
+/*  -- Not need to do before will make the system have issue 
 ### Manual update the primary key
 
 -- Step 1: Get the next AUTO_INCREMENT value
@@ -336,49 +417,20 @@ INSERT INTO sme_bo_and_plan_id_seq
 */
 
 
-### Create a stored procedure to reset the AUTO_INCREMENT
-DROP PROCEDURE IF EXISTS reset_auto_increment_for_sme;
 
-DELIMITER //
+-- data key by huaman
+SELECT * FROM tabSME_BO_and_Plan WHERE name < 1000000 ORDER BY name DESC;
 
-CREATE PROCEDURE reset_auto_increment_for_sme()
-BEGIN
-    -- Step 1: Get the next AUTO_INCREMENT value
-    SET @next_id = (SELECT MAX(name) + 1 FROM tabSME_BO_and_Plan);
-    
-    -- Step 2: Construct and execute the ALTER TABLE query
-    SET @query = CONCAT('ALTER TABLE tabSME_BO_and_Plan AUTO_INCREMENT=', @next_id);
-    PREPARE stmt FROM @query;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-    
-    -- Step 3: Update the sequence table
-    INSERT INTO sme_bo_and_plan_id_seq
-    SELECT 
-        (SELECT MAX(name) + 1 FROM tabSME_BO_and_Plan) AS next_not_cached_value, 
-        minimum_value, maximum_value, start_value, increment, 
-        cache_size, cycle_option, cycle_count
-    FROM sme_bo_and_plan_id_seq;
-END //
 
-DELIMITER ;
+-- data key sync from someway
+SELECT * FROM tabSME_BO_and_Plan WHERE name >= 1000000 ORDER BY name DESC;
 
 
 
-### call the procedure to reset the AUTO_INCREMENT
-DROP TRIGGER IF EXISTS after_insert_tabSME_BO_and_Plan;
 
 
-DELIMITER $$
 
-CREATE TRIGGER after_insert_tabSME_BO_and_Plan
-AFTER INSERT ON tabSME_BO_and_Plan
-FOR EACH ROW
-BEGIN
-    CALL reset_auto_increment_for_sme();
-END$$
 
-DELIMITER ;
 
 
 

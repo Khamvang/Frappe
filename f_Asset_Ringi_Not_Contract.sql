@@ -1,7 +1,16 @@
 
 
+-- Check and delete before export new data to table
+SELECT * FROM tabSME_Approach_list WHERE approach_type IN ('Asset_Not_Contract','Ringi_Not_Contract');
+
+
+DELETE FROM tabSME_Approach_list WHERE approach_type IN ('Asset_Not_Contract','Ringi_Not_Contract');
+
+
+
+
 -- 1) Ringi not contract export to Frappe table [tabSME_Approach_list]
--- Run on server frappe 13.250.153.252
+-- Run on server lalco 18.140.117.112
 SELECT 
     NOW() AS creation,
     'Administrator' AS owner,
@@ -53,7 +62,7 @@ WHERE
 		from tblprospect p
 		left join tblcontract c on (c.prospect_id = p.id)
 		LEFT JOIN tblcustomer cu on (cu.id = p.customer_id)
-		where FROM_UNIXTIME(p.date_updated , '%Y-%m-%d') between '2024-01-01' and '2025-01-31'
+		where FROM_UNIXTIME(p.date_updated , '%Y-%m-%d') between '2025-01-01' and '2025-04-30'
 			and cu.id not in (select p.customer_id from tblcontract c left join tblprospect p on (p.id = c.prospect_id) where c.status in (4,6,7) )
 		group by cu.id
 		order by FIELD(p.status, 3,2,1,0,4) , FIELD(c.status, 4,6,7,3,2,1,0,5) ,
@@ -64,7 +73,7 @@ WHERE
 
 
 -- 2) Asset not contract export to Frappe table [tabSME_Approach_list]
--- Run on server frappe 13.250.153.252
+-- Run on server lalco 18.140.117.112
 SELECT 
     NOW() AS creation,
     'Administrator' AS owner,
@@ -119,7 +128,7 @@ WHERE
 		left join tblcontract c on (c.prospect_id = p.id)
 		LEFT JOIN tblcustomer cu ON (p.customer_id = cu.id)
 		LEFT JOIN tblcustomer cu2 ON (cu2.id = av.customer_id)
-		where FROM_UNIXTIME(av.date_updated , '%Y-%m-%d') between '2023-08-01' and '2023-08-31'
+		where FROM_UNIXTIME(av.date_updated , '%Y-%m-%d') between '2025-01-01' and '2025-04-30'
 			and CASE WHEN cu.id IS NULL THEN cu2.id  WHEN cu.id = 0 THEN cu2.id  ELSE cu.id  END not in (
 			select p.customer_id from tblcontract c left join tblprospect p on (p.id = c.prospect_id) where c.status in (4,6,7) -- and from_unixtime(c.disbursed_datetime, '%Y-%m-%d') >= '2022-12-01'
 			) group by cu.id
@@ -131,14 +140,75 @@ WHERE
 
 
 
+-- 3) Import data to table temp_sme_pbx_BO_special_management
+DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type IN ('Asset_Not_Contract','Ringi_Not_Contract') ;
+
+INSERT INTO temp_sme_pbx_BO_special_management
+SELECT 
+	NULL AS `id`,
+	apl.name as `bp_name`, 
+	apl.customer_tel, 
+	NULL AS `pbx_status`, 
+	NULL AS `date`, 
+	NULL AS `current_staff`, 
+	CASE 
+		WHEN apl.rank_update in ('S', 'A', 'B', 'C') then apl.rank_update 
+		ELSE apl.rank1 
+	END `type`, 
+	CASE WHEN timestampdiff(month, apl.creation, date(now())) > 36 then 36 
+		ELSE timestampdiff(month, apl.creation, date(now())) 
+	END `month_type`,
+	apl.`usd_loan_amount`,
+	apl.approach_type as `management_type`,
+	NULL AS `datetime_create`
+FROM tabSME_Approach_list apl 
+left join sme_org sme on (SUBSTRING_INDEX(apl.staff_no, ' -', 1) = sme.staff_no )
+WHERE apl.approach_type IN ('Asset_Not_Contract', 'Ringi_Not_Contract')
+;
 
 
 
+-- 4) Export list to assign 
+SELECT * FROM temp_sme_pbx_BO_special_management WHERE management_type IN ('Asset_Not_Contract','Ringi_Not_Contract') ;
 
 
 
-
-
+-- 5) Ringi_Asset_Not_Contract to Google sheet
+-- Run on server frappe 13.250.153.252
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	bp.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	bp.rank_update , 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= date_format(curdate(), '%Y-%m-21')  then 'called' else 'x' end as `call_ status`,
+	bp.visit_or_not ,
+	bp.ringi_status ,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	null as `is_own`,
+	bp.own_salesperson,
+	bp.approach_type
+from tabSME_Approach_list bp 
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type in ('Asset_Not_Contract','Ringi_Not_Contract') )
+left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+order by sme.id asc;
 
 
 

@@ -6,11 +6,34 @@ SHOW INDEX FROM tabsme_Employees;
 CREATE INDEX idx_staff_no ON tabsme_Employees(staff_no);
 
 SELECT * FROM tabsme_Employees
--- WHERE creation IS NOT NULL;
+WHERE staff_no  '4913', ;
 
 SELECT staff_no, name, staff_status FROM tabsme_Employees
 
 ALTER TABLE tabsme_Employees ADD `datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp();
+
+
+
+-- Check duplicate
+select * from ( 
+		select `name`, staff_no, row_number() over (partition by `staff_no` order by `name` asc) as row_numbers	
+		from tabsme_Employees
+	) as t1
+where row_numbers > 1 
+
+
+-- check the details and delete
+SELECT * FROM tabsme_Employees
+WHERE staff_no IN ('4913', '897') ;
+
+
+DELETE FROM tabsme_Employees
+WHERE staff_no IN ('4913', '897') ;
+
+
+-- Import new data to databases
+https://docs.google.com/spreadsheets/d/1y_aoS_10n_FAqgWbbaURD9D79WN--wgR5Ih3QwLWTag/edit?gid=659979462#gid=659979462
+
 
 
 -- Computer
@@ -163,7 +186,10 @@ SET office_branch =
 ;
 
 
--- Export Computer's Data
+-- _______________________________________________ Export to Google sheet _______________________________________________
+-- https://docs.google.com/spreadsheets/d/106kXbAIlXDvOekvXWE6Q99LOge37RteU9zJD1DNgTNU/edit?gid=311956953#gid=311956953
+
+-- 1. Export Computer's Data
 SELECT ie.name, 
 	ie.equipment_type, 
 	ie.profile, 
@@ -192,12 +218,16 @@ SELECT ie.name,
 		ELSE te.department 
 	END AS `department`,
 	sme.unit ,
-	te.staff_no, 
+	CASE 
+		WHEN sme.id IS NOT NULL THEN sme.staff_no 
+		ELSE te.staff_no
+	END AS `staff_no`, 
 	CASE
 		WHEN sme.id IS NOT NULL THEN sme.staff_name
 		ELSE UPPER(te.staff_name) 
 	END AS `staff_name`,
 	te.main_contact,
+	NULL `hire_date`,
 	CASE 
 		WHEN sme.retirement_date IS NOT NULL THEN 'Resigned'
 		ELSE te.staff_status
@@ -207,11 +237,27 @@ SELECT ie.name,
 		ELSE te.date_resigned
 	END AS `retirement_date`,
 	ic.name AS `refer_id`,
-	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`
+	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`,
+	-- Previous staff1
+	ic2.share_to_staff_id AS `previous_staff1`,
+	ic2.staff_phone AS `previous_staff1_tell`,
+	te2.staff_status AS `previous_staff1_status`,
+	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic2.name) AS `previous_staff1_details`,
+	-- Previous staff2
+	ic3.share_to_staff_id AS `previous_staff2`,
+	ic3.staff_phone AS `previous_staff2_tell`,
+	te3.staff_status AS `previous_staff2_status`,
+	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic3.name) AS `previous_staff2_details`
 FROM tabIT_Equipment ie 
 LEFT JOIN tabIT_computers ic ON ic.name = (SELECT name FROM tabIT_computers WHERE it_equipment = ie.name ORDER BY modified DESC LIMIT 1)
 LEFT JOIN tabsme_Employees te ON (ic.share_to_staff_id = te.name)
 LEFT JOIN sme_org sme ON (te.staff_no = sme.staff_no)
+-- Previous staff1
+LEFT JOIN tabIT_computers ic2 ON ic2.name = (SELECT name FROM tabIT_computers WHERE it_equipment = ie.name ORDER BY modified DESC LIMIT 1 OFFSET 1)
+LEFT JOIN tabsme_Employees te2 ON (ic2.share_to_staff_id = te2.name)
+-- Previous staff2
+LEFT JOIN tabIT_computers ic3 ON ic3.name = (SELECT name FROM tabIT_computers WHERE it_equipment = ie.name ORDER BY modified DESC LIMIT 1 OFFSET 2)
+LEFT JOIN tabsme_Employees te3 ON (ic3.share_to_staff_id = te3.name)
 WHERE ie.equipment_type = 'Computer'
 ORDER BY 
 	CASE WHEN sme.id IS NOT NULL THEN 1 ELSE 0 END DESC,
@@ -230,17 +276,80 @@ ORDER BY
 
 
 
+-- 2. PC of Salespeople
+SELECT ie.name, 
+	ie.equipment_type,
+	CASE
+		WHEN ie.profile IS NOT NULL THEN ie.profile
+		ELSE ic.computer_profile
+	END AS `profile`,
+	CASE
+		WHEN ie.maker IS NOT NULL THEN ie.maker
+		ELSE ic.maker
+	END AS `maker`,
+	CASE
+		WHEN ie.sn_id IS NOT NULL THEN ie.sn_id
+		ELSE ic.sn_id
+	END AS `sn_id`,
+	CASE
+		WHEN ie.cpu IS NOT NULL THEN ie.cpu
+		ELSE ic.cpu
+	END AS `cpu`,
+	CASE
+		WHEN ie.ram IS NOT NULL THEN ie.ram
+		ELSE ic.ram
+	END AS `ram`,
+	ie.user_name ,
+	CASE 
+		WHEN sme.affiliation IS NOT NULL THEN sme.affiliation
+		WHEN te.branch = 'Head Office' THEN 'HO'
+		WHEN ic.office_branch = 'Head Office' THEN 'HO'
+		ELSE 'BR'
+	END AS `HO_BR`,
+	CASE WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') AND sme.affiliation = 'HO' THEN 'Head Office'
+		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') AND sme.affiliation = 'BR' THEN sme.sec_branch
+		WHEN sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN te.branch 
+		ELSE ic.office_branch 
+	END AS `branch_name`,
+	CASE 
+		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN 'Sales'
+		ELSE 'Non-Sales'
+	END AS `is_sales`,
+	CASE 
+		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN sme.dept 
+		ELSE te.department 
+	END AS `department`,
+	sme.unit ,
+	CASE 
+		WHEN sme.id IS NOT NULL THEN sme.staff_no 
+		ELSE te.staff_no
+	END AS `staff_no`, 
+	CASE
+		WHEN sme.id IS NOT NULL THEN sme.staff_name
+		ELSE UPPER(te.staff_name) 
+	END AS `staff_name`,
+	te.main_contact,
+	sme.hire_date,
+	CASE 
+		WHEN sme.retirement_date IS NOT NULL THEN 'Resigned'
+		ELSE te.staff_status
+	END AS `staff_status`,
+	CASE 
+		WHEN sme.id IS NOT NULL THEN sme.retirement_date
+		ELSE te.date_resigned
+	END AS `retirement_date`,
+	ic.name AS `refer_id`,
+	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`
+FROM sme_org sme 
+LEFT JOIN tabIT_computers ic ON ic.name = (SELECT name FROM tabIT_computers WHERE SUBSTRING_INDEX(share_to_staff_id, ' -', 1) = sme.staff_no ORDER BY modified DESC LIMIT 1)
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+LEFT JOIN tabsme_Employees te ON (sme.staff_no = te.staff_no)
+WHERE sme.id IS NOT NULL
+	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+ORDER BY 
+	sme.id ASC 
+;
 
-SELECT * FROM tabIT_computers WHERE share_to_staff_id LIKE '1003%';
-
-SELECT * FROM tabIT_computers WHERE it_equipment = 'Com - NB - acer - core i7 - NHQ59ST023933020703400 - Lalco_Admin'
-
-SELECT * FROM tabIT_Equipment WHERE refer_id = '1091'
-
-SELECT * FROM tabIT_computers WHERE name = 1152
-
-UPDATE tabIT_computers SET creation = CURRENT_DATE() 
-WHERE creation is null
 
 
 -- ______________________________________________ 100 PCs need to fix ______________________________________________
@@ -336,79 +445,7 @@ ORDER BY name DESC;
 
 
 
--- ______________________________________________ Sales ______________________________________________
 
-SELECT computer_profile, maker, sn_id, cpu, ram FROM tabIT_computers tic 
-
--- PC of Salespeople
-SELECT ie.name, 
-	ie.equipment_type,
-	CASE
-		WHEN ie.profile IS NOT NULL THEN ie.profile
-		ELSE ic.computer_profile
-	END AS `profile`,
-	CASE
-		WHEN ie.maker IS NOT NULL THEN ie.maker
-		ELSE ic.maker
-	END AS `maker`,
-	CASE
-		WHEN ie.sn_id IS NOT NULL THEN ie.sn_id
-		ELSE ic.sn_id
-	END AS `sn_id`,
-	CASE
-		WHEN ie.cpu IS NOT NULL THEN ie.cpu
-		ELSE ic.cpu
-	END AS `cpu`,
-	CASE
-		WHEN ie.ram IS NOT NULL THEN ie.ram
-		ELSE ic.ram
-	END AS `ram`,
-	ie.user_name ,
-	CASE 
-		WHEN sme.affiliation IS NOT NULL THEN sme.affiliation
-		WHEN te.branch = 'Head Office' THEN 'HO'
-		WHEN ic.office_branch = 'Head Office' THEN 'HO'
-		ELSE 'BR'
-	END AS `HO_BR`,
-	CASE WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') AND sme.affiliation = 'HO' THEN 'Head Office'
-		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') AND sme.affiliation = 'BR' THEN sme.sec_branch
-		WHEN sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN te.branch 
-		ELSE ic.office_branch 
-	END AS `branch_name`,
-	CASE 
-		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN 'Sales'
-		ELSE 'Non-Sales'
-	END AS `is_sales`,
-	CASE 
-		WHEN sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') THEN sme.dept 
-		ELSE te.department 
-	END AS `department`,
-	sme.unit ,
-	te.staff_no, 
-	CASE
-		WHEN sme.id IS NOT NULL THEN sme.staff_name
-		ELSE UPPER(te.staff_name) 
-	END AS `staff_name`,
-	te.main_contact,
-	sme.hire_date,
-	CASE 
-		WHEN sme.retirement_date IS NOT NULL THEN 'Resigned'
-		ELSE te.staff_status
-	END AS `staff_status`,
-	CASE 
-		WHEN sme.id IS NOT NULL THEN sme.retirement_date
-		ELSE te.date_resigned
-	END AS `retirement_date`,
-	ic.name AS `refer_id`,
-	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`
-FROM sme_org sme 
-LEFT JOIN tabIT_computers ic ON ic.name = (SELECT name FROM tabIT_computers WHERE SUBSTRING_INDEX(share_to_staff_id, ' -', 1) = sme.staff_no ORDER BY modified DESC LIMIT 1)
-LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
-LEFT JOIN tabsme_Employees te ON (sme.staff_no = te.staff_no)
-WHERE sme.id IS NOT NULL
-	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
-ORDER BY 
-	sme.id ASC ;
 
 
 
@@ -467,24 +504,56 @@ FROM tabIT_Equipment
 
 
 
-SELECT * FROM tabIT_computers tic 
-WHERE tic.share_to_staff_id LIKE '4873%'
+## _______________________________________ Insert new data and correct it _______________________________________
+-- 1. Insert new data to table tabIT_Equipment
+-- https://docs.google.com/spreadsheets/d/106kXbAIlXDvOekvXWE6Q99LOge37RteU9zJD1DNgTNU/edit?gid=310468117#gid=310468117
+
+
+-- Sheet [insert_db]
+SELECT 
+	NULL AS `name`,
+	ic.it_equipment AS `equipment_type`,
+	ic.computer_profile AS `profile`,
+	ic.maker ,
+	ic.sn_id , 
+	ic.cpu ,
+	ic.ram , 
+	NULL AS `user_name`,
+	'KHAM' AS `owner`,
+	ic.name AS `refer_id`
+FROM tabIT_computers ic
+WHERE ic.name >= 1334 AND (ic.it_equipment IS NULL OR ic.it_equipment = '')
+-- WHERE ic.it_equipment IS NULL 
+ORDER BY ic.name ASC
+;
+
+
+-- Insert 
+INSERT INTO tabIT_Equipment
+(name, equipment_type, profile, maker, sn_id, cpu, ram, user_name, owner, refer_id)
+VALUES
+('Com - DT - hp - core i5 - 6CR4248800 - LALCO-510', 'Computer', 'Desktop - ຄອມຕັ້ງໂຕ', 'hp', '6CR4248800', 'core i5', 'RAM4', 'LALCO-510', 'KHAM', 1377),
+('Com - DT - hp - core i5 - 6CR4247TJC - LALCO-511', 'Computer', 'Desktop - ຄອມຕັ້ງໂຕ', 'hp', '6CR4247TJC', 'core i5', 'RAM4', 'LALCO-511', 'KHAM', 1378)
+;
+
+
+-- 2. Check 
+SELECT ic.name, ic.it_equipment , ie.name , ie.refer_id 
+FROM tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+WHERE ic.name IN (1377, 1378)
+;
 
 
 
+-- 3. Update
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = ie.name
+WHERE ic.name IN (1377, 1378)
 
 
-
-
-
-
-
-
-
-
-
-
-
+-- 4. Update tabIT_computers
 
 
 

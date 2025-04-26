@@ -2,16 +2,28 @@
 
 -- 1. Create table
 -- Run on server frappe 13.250.153.252
+DROP TABLE IF EXISTS `sme_hc_result`;
+
 CREATE TABLE `sme_hc_result` (
 	id INT(11) NOT NULL AUTO_INCREMENT,
 	contract_no INT(11) DEFAULT NULL,
 	customer_id INT(11) DEFAULT NULL,
+	pre_contract_no INT(11) DEFAULT NULL,
+	`contract_type` VARCHAR(255) DEFAULT NULL,
+	`customer_type` VARCHAR(255) DEFAULT NULL,
 	customer_name VARCHAR(255) DEFAULT NULL,
 	main_contact_no VARCHAR(255) DEFAULT NULL,
 	sec_contact_no VARCHAR(255) DEFAULT NULL,
 	disbursed_date DATE DEFAULT NULL,
 	ringi_status VARCHAR(255) DEFAULT NULL,
 	contract_status VARCHAR(255) DEFAULT NULL,
+	`usd_loan_amount` DECIMAL(20,2) NOT NULL DEFAULT 0,
+	`monthly_interest` DECIMAL(20,2) NOT NULL DEFAULT 0,
+	`usd_fee` DECIMAL(20,2) NOT NULL DEFAULT 0,
+	`no_of_payment` TINYINT(4) NOT NULL DEFAULT 0,
+	`min_repayment_period` TINYINT(4) NOT NULL DEFAULT 0,
+	`usd_refinance_amount` DECIMAL(20,2) NOT NULL DEFAULT 0,
+	`usd_net_payment_amount` DECIMAL(20,2) NOT NULL DEFAULT 0,
 	approach_en VARCHAR(255) DEFAULT NULL,
 	approach_la VARCHAR(255) DEFAULT NULL,
 	broker_id INT(11) DEFAULT NULL,
@@ -19,6 +31,9 @@ CREATE TABLE `sme_hc_result` (
 	broker_tel VARCHAR(255) DEFAULT NULL,
 	acquire_by VARCHAR(255) DEFAULT NULL,
 	salesperson VARCHAR(255) DEFAULT NULL,
+	callcenter_of_sales VARCHAR(255) DEFAULT NULL,
+	double_count VARCHAR(255) DEFAULT NULL,
+	non_sales VARCHAR(255) DEFAULT NULL,
 	date_created DATETIME DEFAULT CURRENT_TIMESTAMP(),
 	PRIMARY KEY (id),
 	KEY `idx_customer_id` (`customer_id`),
@@ -28,16 +43,29 @@ CREATE TABLE `sme_hc_result` (
 	KEY `idx_contract_status` (`contract_status`),
 	KEY `idx_broker_tel` (`broker_tel`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-
-
-SELECT * FROM sme_hc_result shr ;
-DROP TABLE sme_hc_result;
+;
 
 
 -- 2. HC Contracted from LMS
 -- Run on server lalco 18.140.117.112
 SELECT p.id AS `contract_no` ,
 	cu.id AS `customer_id`,
+	cpre.contract_no AS `pre_contract_no`,
+    CASE
+		p.contract_type 
+		WHEN 1 THEN 'SME Car'
+		WHEN 2 THEN 'SME Bike'
+		WHEN 3 THEN 'Car Leasing'
+		WHEN 4 THEN 'Bike Leasing'
+		WHEN 5 THEN 'Real estate'
+		ELSE NULL
+	END `contract_type`,
+	CASE
+		p.customer_profile 
+		WHEN 1 THEN 'New'
+		WHEN 2 THEN 'Current'
+		WHEN 3 THEN 'Dormant'
+	END `customer_type`,
 	CONVERT( CAST( CONVERT( CONCAT( cu.customer_first_name_lo, ' ', cu.customer_last_name_lo, ' / ', 
 							cu.customer_first_name_en, ' ', cu.customer_last_name_en
 			) USING latin1) AS BINARY) USING utf8) 
@@ -73,6 +101,41 @@ SELECT p.id AS `contract_no` ,
 		WHEN c.status = 7 THEN 'Closed'
 		ELSE NULL
 	END `contract_status`,
+	CEIL(p.loan_amount /
+		CASE
+			p.trading_currency 
+			WHEN 'USD' THEN 1
+			WHEN 'LAK' THEN cr.usd2lak
+			WHEN 'THB' THEN cr.usd2thb
+		END
+	) AS `usd_loan_amount`, 
+	p.monthly_interest , 
+	CEIL(p.fee /
+		CASE
+			p.trading_currency 
+			WHEN 'USD' THEN 1
+			WHEN 'LAK' THEN cr.usd2lak
+			WHEN 'THB' THEN cr.usd2thb
+		END
+	) AS `usd_fee`,
+	p.no_of_payment , 
+	p.min_repayment_period ,
+	CEIL(p.refinance_amount /
+		CASE
+			p.trading_currency 
+			WHEN 'USD' THEN 1
+			WHEN 'LAK' THEN cr.usd2lak
+			WHEN 'THB' THEN cr.usd2thb
+		END
+	) AS `usd_refinance_amount`,
+	CEIL(p.net_payment_amount /
+		CASE
+			p.trading_currency 
+			WHEN 'USD' THEN 1
+			WHEN 'LAK' THEN cr.usd2lak
+			WHEN 'THB' THEN cr.usd2thb
+		END
+	) AS `usd_net_payment_amount`,
 	CASE 
 		WHEN p.customer_intro_approach = 1 THEN '①-1 5way (Finance company),'
 		WHEN p.customer_intro_approach = 2 THEN '①-2 5way (Vehicle dealer/repair shop),'
@@ -114,11 +177,19 @@ SELECT p.id AS `contract_no` ,
 			WHEN us2.staff_no IS NOT NULL THEN CONCAT(us2.staff_no, ' - ', us2.nickname) ELSE CONCAT(us.staff_no, ' - ', us.nickname)
 		END 
 		) AS `acquire_by`, 
-	CONCAT(us.staff_no, ' - ', UPPER(us.nickname)) AS `salesperson`
+	CONCAT(us.staff_no, ' - ', UPPER(us.nickname)) AS `salesperson`,
+	CONCAT(ucc.staff_no, ' - ', UPPER(ucc.nickname)) AS `callcenter_of_sales`,
+	CONCAT(udc.staff_no, ' - ', UPPER(udc.nickname)) AS `double_count` ,
+	CONCAT(uns.staff_no, ' - ', UPPER(uns.nickname)) AS `non_sales`
 FROM tblcontract c 
 RIGHT JOIN tblprospect p ON (p.id = c.prospect_id)
 LEFT JOIN tblcustomer cu ON (cu.id = p.customer_id)
+LEFT JOIN tblcontract cpre ON (cpre.id = p.refinance_id)
+left join tblcurrencyrate cr on (cr.date_for = DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') )
 LEFT JOIN tbluser us ON (us.id = p.salesperson_id)
+LEFT JOIN tbluser ucc ON (ucc.id = p.cc_salesperson_id)
+LEFT JOIN tbluser udc ON (udc.id = p.double_count_person_id)
+LEFT JOIN tbluser uns ON (uns.id = p.non_salesperson_id)
 LEFT JOIN tbluser us2 ON (us2.id = p.broker_acquire_salesperson_id)
 LEFT JOIN tblbroker b ON (b.id = p.broker_id)
 WHERE 
@@ -129,6 +200,9 @@ WHERE
 		( p.initial_date >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') 
 		)
 ;
+
+
+
 
 
 
