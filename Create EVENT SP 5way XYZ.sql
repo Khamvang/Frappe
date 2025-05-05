@@ -122,7 +122,10 @@ DROP EVENT IF EXISTS xyz_insert_new_sequence;
 
 
 -- ------------------------------------------------------------ trigger that runs automatically upon inserting or creating a new record  ------------------------------------------------------------
--- 1) Create Trigger
+-- 1) Drop Trigger
+DROP TRIGGER IF EXISTS trg_after_insert_tabsme_sales_partner;
+
+-- 2) Create Trigger
 
 DELIMITER //
 
@@ -155,18 +158,26 @@ BEGIN
             WHEN NEW.owner_staff = '' OR NEW.owner_staff IS NULL THEN NEW.current_staff
             ELSE NEW.owner_staff 
         END;
+
+    -- Update refer_type if broker_type indicates '5way'
+    SET NEW.refer_type = 
+        CASE 
+            WHEN (NEW.refer_type IS NULL OR NEW.refer_type = '')
+                 AND SUBSTRING_INDEX(NEW.broker_type, ' -', 1) = '5way'
+            THEN '5way'
+            ELSE NEW.refer_type
+        END;
+
 END;
 //
 
 DELIMITER ;
 
 
--- 2) Check Trigger
+-- 3) Check Trigger
 SHOW TRIGGERS LIKE 'tabsme_Sales_partner';
 
 
--- 3) Drop Trigger
-DROP TRIGGER IF EXISTS trg_after_insert_tabsme_sales_partner;
 
 
 
