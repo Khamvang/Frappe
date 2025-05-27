@@ -1,19 +1,25 @@
 -- Create daily report
 
 -- 1 create table
-create table `sme_pre_daily_report` (
-  `id` int(11) not null auto_increment,
-  `date_report` date not null,
-  `bp_name` int(11) not null,
-  `rank_update` varchar(255) default null,
-  `now_result` varchar(255) default null,
-  `rank_update_SABC` int(11) not null default 0,
-  `visit_or_not` varchar(255) default null,
-  `ringi_status` varchar(255) default null,
-  `disbursement_date_pay_date` date default null,
-  `datetime_update` datetime default current_timestamp on update current_timestamp,
-  primary key (`id`)
-) engine=innodb auto_increment=1 default charset=utf8mb3 collate=utf8mb3_general_ci;
+CREATE TABLE `sme_pre_daily_report` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date_report` date NOT NULL,
+  `bp_name` int(11) NOT NULL,
+  `rank_update` varchar(255) DEFAULT NULL,
+  `now_result` varchar(255) DEFAULT NULL,
+  `rank_update_SABC` int(11) NOT NULL DEFAULT 0,
+  `visit_or_not` varchar(255) DEFAULT NULL,
+  `ringi_status` varchar(255) DEFAULT NULL,
+  `disbursement_date_pay_date` date DEFAULT NULL,
+  `datetime_update` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `usd_loan_amount` decimal(21,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`id`),
+  KEY `idx_date_report` (`date_report`),
+  KEY `idx_rank_update_SABC` (`rank_update_SABC`),
+  KEY `idx_disbursement_date_pay_date` (`disbursement_date_pay_date`),
+  KEY `idx_usd_loan_amount` (`usd_loan_amount`),
+  KEY `idx_bp_name_id` (`bp_name`,`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
 
