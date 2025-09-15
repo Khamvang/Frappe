@@ -29,18 +29,30 @@ delete from tabSME_BO_and_Plan_bk where reason_of_credit = '18 ບໍ່ມັ�
 
 
 -- 2) SABC update the list for next month
-delete from temp_sme_pbx_BO where type in ('S', 'A', 'B', 'C');
+TRUNCATE temp_sme_pbx_BO ;
 
 
 -- 3) insert and replace SABC rank from tabSME_BO_and_Plan to temp_sme_pbx_BO
 SELECT * FROM temp_sme_pbx_BO;
 
 replace into temp_sme_pbx_BO
-select bp.name `id`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
-	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
-	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+select 
+	bp.name `id`, 
+	bp.customer_tel, 
+	null `pbx_status`, 
+	null `date`, 
+	bp.staff_no `current_staff`, 
+	case 
+		when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update 
+		else bp.rank1 
+	end `type`, 
+	case 
+		when timestampdiff(month, bp.creation, date(now())) > 36 then 36 
+		else timestampdiff(month, bp.creation, date(now())) 
+	end `month_type`,
 	bp.usd_loan_amount,
-	case when sme.dept is null then 'Resigned' when sme2.dept is null then 'Resigned'
+	case when sme.dept is null then 'Resigned' 
+		when sme2.dept is null then 'Resigned'
 		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
 	end as `is_own`
@@ -52,17 +64,27 @@ where ( (bp.rank1 in ('S', 'A', 'B', 'C') and bp.rank_update not in ('FFF') )
 	and bp.contract_status not in ('Contracted');
 
 
--- 4) F update the list for next month
-delete from temp_sme_pbx_BO where type in ('F');
 
 
--- 5) insert and replace F rank from tabSME_BO_and_Plan to temp_sme_pbx_BO
+-- 4) insert and replace F rank from tabSME_BO_and_Plan to temp_sme_pbx_BO
 replace into temp_sme_pbx_BO
-select bp.name `id`, bp.customer_tel, null `pbx_status`, null `date`, bp.staff_no `current_staff`, 
-	case when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update else bp.rank1 end `type`, 
-	case when timestampdiff(month, bp.creation, date(now())) > 36 then 36 else timestampdiff(month, bp.creation, date(now())) end `month_type`,
+select 
+	bp.name `id`, 
+	bp.customer_tel, 
+	null `pbx_status`, 
+	null `date`, 
+	bp.staff_no `current_staff`, 
+	case 
+		when bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update 
+		else bp.rank1 
+	end `type`, 
+	case 
+		when timestampdiff(month, bp.creation, date(now())) > 36 then 36 
+		else timestampdiff(month, bp.creation, date(now())) 
+	end `month_type`,
 	bp.usd_loan_amount,
-	case when sme.dept is null then 'Resigned' when sme2.dept is null then 'Resigned'
+	case when sme.dept is null then 'Resigned' 
+		when sme2.dept is null then 'Resigned'
 		when sme.dept in ('Collection CC', 'Sales promotion CC', 'Internal', 'LC') then 'Resigned'
 		else 'Own' 
 	end as `is_own`
@@ -77,42 +99,206 @@ where ( (bp.rank1 in ('F') and bp.rank_update not in ('FFF') )
 
 
 
+-- 5. Allocation the cases based on condition https://docs.google.com/spreadsheets/d/1K_5l_CWaIlt_tR45hhvoV1nSfPmc8BlX9RZfSpdOzr4/edit?gid=1905202920#gid=1905202920
 
--- 6) Export data to allocate the cases of resigned employees to current employees
--- SABC 1 year
-SELECT *, 
-	case when usd_loan_amount >= 10000 then '①over $10,000'
-		when usd_loan_amount >= 5000 then '②over $5,000'
-		when usd_loan_amount < 5000 then '③less than $5,000'
-	end `usd_loan_amount_type`
-FROM temp_sme_pbx_BO
-WHERE is_own = 'Resigned'
-	AND `type` IN ('S', 'A', 'B', 'C')
-	AND month_type <= 12
-ORDER BY usd_loan_amount DESC
+-- __________________________________________ UL  __________________________________________
+-- Assign to UL only the cases that lasted introducion within 3 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+		SELECT COUNT(*)
+		FROM temp_sme_pbx_BO tb
+	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+		WHERE `type` IN ('S', 'A', 'B', 'C')
+			AND tb.usd_loan_amount >= 5000
+);
+
+SET @num_staff = (
+		SELECT COUNT(*)
+		FROM sme_org sme
+		LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+		WHERE sme.rank <= 49 
+			AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+	SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+	FROM sme_org sme
+	LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+	WHERE sme.rank <= 49 
+		AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+;
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+	SELECT 
+		tb.id AS case_name, 
+		ROW_NUMBER() OVER (ORDER BY tb.id) AS row_num
+	FROM temp_sme_pbx_BO tb
+ 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+	WHERE `type` IN ('S', 'A', 'B', 'C')
+		AND tb.usd_loan_amount >= 5000
 ;
 
 
--- SABC Over 1 year
-SELECT *, 
-	case when usd_loan_amount >= 10000 then '①over $10,000'
-		when usd_loan_amount >= 5000 then '②over $5,000'
-		when usd_loan_amount < 5000 then '③less than $5,000'
-	end `usd_loan_amount_type`
-FROM temp_sme_pbx_BO
-WHERE is_own = 'Resigned'
-	AND `type` IN ('S', 'A', 'B', 'C')
-	AND month_type > 12
-ORDER BY usd_loan_amount DESC
+-- Step 4: Assign cases to staff fairly
+UPDATE temp_sme_pbx_BO tb
+JOIN (
+		SELECT c.case_name, 
+					 CASE
+							 WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+									 MOD(c.row_num - 1, @num_staff) + 1
+							 ELSE
+									 MOD(c.row_num - 1, @num_staff) + 1
+					 END AS staff_row
+		FROM tmp_cases c
+) case_assign ON tb.id = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET tb.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE IF EXISTS tmp_staff;
+DROP TEMPORARY TABLE IF EXISTS tmp_cases;
+
+
+
+
+-- __________________________________________ TL  __________________________________________
+-- Assign to UL only the cases that lasted introducion within 3 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+		SELECT COUNT(*)
+		FROM temp_sme_pbx_BO tb
+	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+		WHERE `type` IN ('S', 'A', 'B', 'C')
+			AND tb.usd_loan_amount >0 AND tb.usd_loan_amount < 5000
+);
+
+SET @num_staff = (
+		SELECT COUNT(*)
+		FROM sme_org sme
+		LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+		WHERE sme.rank BETWEEN 50 AND 69
+			AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+	SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+	FROM sme_org sme
+	LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+	WHERE sme.rank BETWEEN 50 AND 69
+		AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+;
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+	SELECT 
+		tb.id AS case_name, 
+		ROW_NUMBER() OVER (ORDER BY tb.id) AS row_num
+	FROM temp_sme_pbx_BO tb
+ 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+	WHERE `type` IN ('S', 'A', 'B', 'C')
+		AND tb.usd_loan_amount >0 AND tb.usd_loan_amount < 5000
 ;
 
 
+-- Step 4: Assign cases to staff fairly
+UPDATE temp_sme_pbx_BO tb
+JOIN (
+		SELECT c.case_name, 
+					 CASE
+							 WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+									 MOD(c.row_num - 1, @num_staff) + 1
+							 ELSE
+									 MOD(c.row_num - 1, @num_staff) + 1
+					 END AS staff_row
+		FROM tmp_cases c
+) case_assign ON tb.id = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET tb.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE IF EXISTS tmp_staff;
+DROP TEMPORARY TABLE IF EXISTS tmp_cases;
+
+
+
+
+-- __________________________________________ Sales  __________________________________________
+-- Assign to UL only the cases that lasted introducion within 3 months
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+		SELECT COUNT(*)
+		FROM temp_sme_pbx_BO tb
+	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+		WHERE `type` IN ('S', 'A', 'B', 'C')
+			AND tb.usd_loan_amount = 0
+);
+
+SET @num_staff = (
+		SELECT COUNT(*)
+		FROM sme_org sme
+		LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+		WHERE sme.rank BETWEEN 70 AND 79
+			AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+	SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+	FROM sme_org sme
+	LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+	WHERE sme.rank BETWEEN 70 AND 79
+		AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+;
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+	SELECT 
+		tb.id AS case_name, 
+		ROW_NUMBER() OVER (ORDER BY tb.id) AS row_num
+	FROM temp_sme_pbx_BO tb
+ 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(tb.current_staff, ' -', 1) = sme.staff_no
+	WHERE `type` IN ('S', 'A', 'B', 'C')
+		AND tb.usd_loan_amount = 0
+;
+
+
+-- Step 4: Assign cases to staff fairly
+UPDATE temp_sme_pbx_BO tb
+JOIN (
+		SELECT c.case_name, 
+					 CASE
+							 WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+									 MOD(c.row_num - 1, @num_staff) + 1
+							 ELSE
+									 MOD(c.row_num - 1, @num_staff) + 1
+					 END AS staff_row
+		FROM tmp_cases c
+) case_assign ON tb.id = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET tb.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE IF EXISTS tmp_staff;
+DROP TEMPORARY TABLE IF EXISTS tmp_cases;
 
 
 
 
 
--- 7) Assigned based on condition https://docs.google.com/spreadsheets/d/1K_5l_CWaIlt_tR45hhvoV1nSfPmc8BlX9RZfSpdOzr4/edit?gid=1905202920#gid=1905202920
+
+
 
 
 -- 8) Import the current staff to temp_sme_pbx_BO
@@ -143,6 +329,7 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.normal_bullet ,
 	bp.customer_name ,
 	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	tb.`type` AS `rank_beginning`,
 	bp.rank_update , 
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
 	is_sales_partner as `SP_rank`,
@@ -163,10 +350,11 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.own_salesperson
 from tabSME_BO_and_Plan bp 
 inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
-left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+left join sme_org sme on (case when locate(' ', tb.current_staff) = 0 then tb.current_staff else left(tb.current_staff, locate(' ', tb.current_staff)-1) end = sme.staff_no)
 left join sme_org sme2 on (case when locate(' ', bp.own_salesperson) = 0 then bp.own_salesperson else left(bp.own_salesperson, locate(' ', bp.own_salesperson)-1) end = sme2.staff_no)
 where bp.name in (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type <= 12)
 order by sme.id asc;
+
 
 
 -- SABC Over 1 Year
@@ -184,6 +372,7 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.normal_bullet ,
 	bp.customer_name ,
 	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	tb.`type` AS `rank_beginning`,
 	bp.rank_update , 
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
 	is_sales_partner as `SP_rank`,
@@ -204,16 +393,29 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	bp.own_salesperson
 from tabSME_BO_and_Plan bp 
 inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
-left join sme_org sme on (case when locate(' ', bp.staff_no) = 0 then bp.staff_no else left(bp.staff_no, locate(' ', bp.staff_no)-1) end = sme.staff_no)
+left join sme_org sme on (case when locate(' ', tb.current_staff) = 0 then tb.current_staff else left(tb.current_staff, locate(' ', tb.current_staff)-1) end = sme.staff_no)
 left join sme_org sme2 on (case when locate(' ', bp.own_salesperson) = 0 then bp.own_salesperson else left(bp.own_salesperson, locate(' ', bp.own_salesperson)-1) end = sme2.staff_no)
 where bp.name in (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type > 12)
 order by sme.id asc;
 
 
 
+SELECT *
+FROM temp_sme_pbx_BO tb
+LEFT JOIN temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = tb.id)
+WHERE tspbsm.management_type IN ('SABC 1year Over$10,000', 'SABC 1year Over$5,000', 'SABC Over 1year Over$10,000', 'SABC Over 1year Over$5,000')
+;
 
 
+UPDATE temp_sme_pbx_BO tb
+LEFT JOIN temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = tb.id)
+SET tb.current_staff = tspbsm.current_staff
+WHERE tspbsm.management_type IN ('SABC 1year Over$10,000', 'SABC 1year Over$5,000', 'SABC Over 1year Over$10,000', 'SABC Over 1year Over$5,000')
+;
 
+
+UPDATE temp_sme_pbx_BO tb
+SET tb.current_staff = NULL
 
 
 

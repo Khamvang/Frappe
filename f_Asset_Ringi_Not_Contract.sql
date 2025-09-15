@@ -62,7 +62,7 @@ WHERE
 		from tblprospect p
 		left join tblcontract c on (c.prospect_id = p.id)
 		LEFT JOIN tblcustomer cu on (cu.id = p.customer_id)
-		where FROM_UNIXTIME(p.date_updated , '%Y-%m-%d') between '2025-01-01' and '2025-04-30'
+		where FROM_UNIXTIME(p.date_updated , '%Y-%m-%d') between '2025-03-01' and '2025-06-30'
 			and cu.id not in (select p.customer_id from tblcontract c left join tblprospect p on (p.id = c.prospect_id) where c.status in (4,6,7) )
 		group by cu.id
 		order by FIELD(p.status, 3,2,1,0,4) , FIELD(c.status, 4,6,7,3,2,1,0,5) ,

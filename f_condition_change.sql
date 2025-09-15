@@ -29,6 +29,79 @@ ALTER TABLE `_8abac9eed59bf169`.tabsme_special_focus CHANGE f F_after_1_month va
 
 
 
+-- Export the result 
+SELECT 
+        c.contract_no,
+        CASE c.status 
+                WHEN 0 THEN 'Pending'
+                WHEN 1 THEN 'Pending Approval'
+                WHEN 2 THEN 'Pending Disbursement'
+                WHEN 3 THEN 'Disbursement Approval'
+                WHEN 4 THEN 'Active'
+                WHEN 5 THEN 'Cancelled'
+                WHEN 6 THEN 'Refinance'
+                WHEN 7 THEN 'Closed'
+                ELSE NULL
+        END AS `contract_status`,
+    CASE 
+                WHEN p.loan_amount = ps2.principal_amount THEN 'DDT'
+                WHEN p.loan_amount <> ps2.principal_amount THEN 'Normal'
+                WHEN p.payment_schedule_type = 1 THEN 'Normal'
+                ELSE 'DDT+Installment'
+        END AS `ddt_installment`,
+        usc.monthly_interest_2nd,
+        p.trading_currency AS `currency`
+FROM tblcontract c
+LEFT JOIN tblprospect p ON (p.id = c.prospect_id)
+LEFT JOIN update_schedule usc ON usc.id = (
+        SELECT id FROM update_schedule
+        WHERE prospect_id = c.prospect_id AND status IN (4)
+        ORDER BY date_updated DESC LIMIT 0, 1
+)
+LEFT JOIN tblpaymentschedule ps2 ON ps2.id = (
+    SELECT id FROM tblpaymentschedule 
+    WHERE prospect_id = c.prospect_id 
+    ORDER BY payment_date DESC LIMIT 0, 1
+)
+WHERE c.status IN (4, 6, 7)
+        AND c.contract_no IN ();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

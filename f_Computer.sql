@@ -198,6 +198,7 @@ SELECT ie.name,
 	ie.cpu, 
 	ie.ram,
 	ie.user_name ,
+	ic.headset, 
 	CASE 
 		WHEN sme.affiliation IS NOT NULL THEN sme.affiliation
 		WHEN te.branch = 'Head Office' THEN 'HO'
@@ -237,6 +238,9 @@ SELECT ie.name,
 		ELSE te.date_resigned
 	END AS `retirement_date`,
 	ic.name AS `refer_id`,
+	ic.share_date ,
+	ic.modified ,
+	ic.share_comments ,
 	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`,
 	-- Previous staff1
 	ic2.share_to_staff_id AS `previous_staff1`,
@@ -300,6 +304,7 @@ SELECT ie.name,
 		ELSE ic.ram
 	END AS `ram`,
 	ie.user_name ,
+	ic.headset, 
 	CASE 
 		WHEN sme.affiliation IS NOT NULL THEN sme.affiliation
 		WHEN te.branch = 'Head Office' THEN 'HO'
@@ -339,6 +344,9 @@ SELECT ie.name,
 		ELSE te.date_resigned
 	END AS `retirement_date`,
 	ic.name AS `refer_id`,
+	ic.share_date , 
+	ic.modified ,
+	ic.share_comments ,
 	CONCAT('http://13.250.153.252:8000/app/it_computers/', ic.name) AS `Edit`
 FROM sme_org sme 
 LEFT JOIN tabIT_computers ic ON ic.name = (SELECT name FROM tabIT_computers WHERE SUBSTRING_INDEX(share_to_staff_id, ' -', 1) = sme.staff_no ORDER BY modified DESC LIMIT 1)
@@ -350,6 +358,22 @@ ORDER BY
 	sme.id ASC 
 ;
 
+
+SELECT 
+	ic.name, ic.share_to_staff_id, ic.share_date,
+	CASE 
+		WHEN sme.id IS NOT NULL THEN sme.staff_no 
+		ELSE te.staff_no
+	END AS `staff_no`
+FROM sme_org sme 
+LEFT JOIN tabIT_computers ic ON ic.name = (SELECT name FROM tabIT_computers WHERE SUBSTRING_INDEX(share_to_staff_id, ' -', 1) = sme.staff_no ORDER BY modified DESC LIMIT 1)
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+LEFT JOIN tabsme_Employees te ON (sme.staff_no = te.staff_no)
+WHERE sme.id IS NOT NULL
+	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+ORDER BY 
+	sme.id ASC 
+;
 
 
 -- ______________________________________________ 100 PCs need to fix ______________________________________________
@@ -528,13 +552,58 @@ ORDER BY ic.name ASC
 ;
 
 
+
 -- Insert 
 INSERT INTO tabIT_Equipment
-(name, equipment_type, profile, maker, sn_id, cpu, ram, user_name, owner, refer_id)
+	(name, equipment_type, profile, maker, sn_id, cpu, ram, user_name, owner, refer_id)
 VALUES
-('Com - DT - hp - core i5 - 6CR4248800 - LALCO-510', 'Computer', 'Desktop - ຄອມຕັ້ງໂຕ', 'hp', '6CR4248800', 'core i5', 'RAM4', 'LALCO-510', 'KHAM', 1377),
-('Com - DT - hp - core i5 - 6CR4247TJC - LALCO-511', 'Computer', 'Desktop - ຄອມຕັ້ງໂຕ', 'hp', '6CR4247TJC', 'core i5', 'RAM4', 'LALCO-511', 'KHAM', 1378)
+('Com - NB - 0 - 0 - ໃຊ້ຄອມສວ່ນຕົວ - LALCO-703', 'Computer', 'Notebook - ຄອມໂນດບຸກ', '0', 'ໃຊ້ຄອມສວ່ນຕົວ', '0', '0', 'LALCO-703', 'KHAM', 0)
 ;
+
+
+
+-- Intert
+INSERT INTO tabIT_computers
+	(creation , modified , modified_by , owner, it_equipment , share_date, share_to_staff_id, staff_phone, office_branch, charging_cable , headset , mouse , keyboard, share_comments)
+VALUES
+('2025-09-05 09:57:57', '2025-09-05 09:57:57', 'Administrator', 'Administrator', 'Com - DT - lenovo - core i5 - PC1ADJHF - LALCO-740', '2025-09-05', '5296 - DAY', '0', 'Sekong', 'Yes', 'Yes', 'Yes', 'Yes', 'Corrected'),
+('2025-09-05 09:57:57', '2025-09-05 09:57:57', 'Administrator', 'Administrator', 'Com - DT - lenovo - core i5 - PC18MPAY - LALCO-730', '2025-09-05', '5441 - VI', '0', 'Xaythany', 'Yes', 'Yes', 'Yes', 'Yes', 'Corrected'),
+('2025-09-05 09:57:57', '2025-09-05 09:57:57', 'Administrator', 'Administrator', 'Com - DT - lenovo - core i5 - PC19VS7S - LALCO-731', '2025-09-05', '5424 - KOOKKIK', '2093367080', 'Head Office', 'Yes', 'Yes', 'Yes', 'Yes', 'Corrected')
+
+
+
+
+-- 3. Update PRINAMRY KEY after import
+    -- Step 1: Get the next auto_increment value and set it
+    SET @next_not_cached_value = (SELECT max(name)+1 FROM tabIT_computers);
+    
+    -- Step 2: Update the auto_increment value for tabIT_computers
+    SET @alter_query = CONCAT('ALTER TABLE tabIT_computers AUTO_INCREMENT=', @next_not_cached_value);
+    PREPARE stmt FROM @alter_query;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    -- Step 3: Insert the new sequence into it_computers_id_seq
+	insert into it_computers_id_seq 
+	select (select max(name)+1 `next_not_cached_value` from tabIT_computers), minimum_value, maximum_value, start_value, increment, cache_size, cycle_option, cycle_count 
+	from it_computers_id_seq;
+
+
+
+-- backup data
+replace into tabIT_Equipment_bk
+select * from tabIT_Equipment 
+
+delete from tabIT_Equipment
+where name = 'Com - DT - hp -  -  - LALCO-407'
+
+
+insert into tabIT_Equipment
+select * from tabIT_Equipment_bk
+where name = 'Com - NB - hp - core i5 - 5CG9035Y0Y - LALCO-608'
+
+
+select * from tabIT_computers where name = 1582
 
 
 -- 2. Check 
@@ -553,7 +622,1563 @@ SET ic.it_equipment = ie.name
 WHERE ic.name IN (1377, 1378)
 
 
+
 -- 4. Update tabIT_computers
+-- 2. Check 
+SELECT ic.name, ic.it_equipment , ie.name , ie.refer_id , ie.sn_id
+FROM tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+WHERE ie.user_name = 'LALCO-533'
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- 2025-05-12 Update sn_id based on Tou request
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC19S1LV - LALCO-97', 
+	ie.name = 'Com - DT - lenovo - core i5 - PC19S1LV - LALCO-97',
+	ie.sn_id = 'PC19S1LV'
+WHERE ie.user_name = 'LALCO-97' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PC1ADJCW - LALCO-97'
+;
+
+
+-- 2025-05-12 Update sn_id based on Tou request
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC18MMA4 - LALCO-68', 
+	ie.name = 'Com - DT - lenovo - core i5 - PC18MMA4 - LALCO-68',
+	ie.sn_id = 'PC18MMA4'
+WHERE ie.user_name = 'LALCO-68' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PC18MPB7 - LALCO-68'
+;
+
+
+-- 2025-05-12 Update sn_id based on Tou request
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PCIAJSPZ - LALCO-32', 
+	ie.name = 'Com - DT - lenovo - core i5 - PCIAJSPZ - LALCO-32',
+	ie.sn_id = 'PCIAJSPZ'
+WHERE ie.user_name = 'LALCO-32' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PC1AJSPZ - LALCO-32'
+;
+
+
+-- 2025-05-15 Update sn_id based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXABNCN0021380CCB13400 - LALCO-309', 
+	ie.name = 'Com - NB - acer - core i5 - NXABNCN0021380CCB13400 - LALCO-309',
+	ie.sn_id = 'NXABNCN0021380CCB13400'
+WHERE ie.user_name = 'LALCO-309' 
+	AND ie.name = 'Com - NB - acer - core i5 - 123456 - LALCO-309'
+;
+
+
+-- 2025-05-15 Update sn_id based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - 6CR4247TF9 - LALCO-399', 
+	ie.name = 'Com - DT - hp - core i5 - 6CR4247TF9 - LALCO-399',
+	ie.sn_id = '6CR4247TF9'
+WHERE ie.user_name = 'LALCO-399' 
+	AND ie.name = 'Com - DT - hp - core i5 -  - LALCO-399'
+;
+
+
+-- 2025-05-15 Update sn_id based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - NB - acer - core i7 - NXK7HST0032430CCF63400 - LALCO-423', 
+	ie.name = 'Com - NB - acer - core i7 - NXK7HST0032430CCF63400 - LALCO-423',
+	ie.sn_id = 'NXK7HST0032430CCF63400'
+WHERE ie.user_name = 'LALCO-423' 
+	AND ie.name = 'Com - NB - acer - core i3 - 93001319766 - LALCO-423'
+;
+
+
+-- delete because duplicate [LALCO-486 & LALCO-487]
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - DT - hp - core i5 - 6CR42487YR - LALCO-487'
+
+
+-- 2025-05-30 Update sn_id based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXA0PST0050450BCEE3400 - LALCO-311', 
+	ie.name = 'Com - NB - acer - core i3 - NXA0PST0050450BCEE3400 - LALCO-311',
+	ie.sn_id = 'NXA0PST0050450BCEE3400'
+WHERE ie.user_name = 'LALCO-311' 
+	AND ie.name = 'Com - NB - acer - core i3 -  - LALCO-311'
+;
+
+
+-- delete because duplicate [LALCO-447 & LALCO-609]
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - acer - core i5 - 40101778934 - LALCO-447'
+
+
+-- delete because duplicate [LALCO-447 & LALCO-330]
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - lenovo - Intel - MP1E60TZ - LALCO-330'
+
+
+-- 2025-06-17 Update sn_id based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.name = ie.refer_id)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - PF1P652D - LALCO-404', 
+	ie.name = 'Com - DT - hp - core i5 - PF1P652D - LALCO-404',
+	ie.sn_id = 'PF1P652D'
+WHERE ie.user_name = 'LALCO-404' 
+	AND ie.name = 'Com - DT - hp - core i5 -  - LALCO-404'
+;
+
+
+-- 2025-06-17 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - core i3 - 5CG9035YT8 - LALCO-412', 
+	ie.name = 'Com - NB - hp - core i3 - 5CG9035YT8 - LALCO-412',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-412' 
+	AND ie.name = 'Com - NB - hp - core i3 -  - LALCO-412'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - RADEON - NXEG9ST00404418B627600 - LALCO-532', 
+	ie.name = 'Com - NB - acer - RADEON - NXEG9ST00404418B627600 - LALCO-532',
+	ie.sn_id = 'NXEG9ST00404418B627600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-532' 
+	AND ie.name = 'Com - NB - acer - RADEON - NXEG9ST004044188627600 - LALCO-532'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - acer - core i3 - 92901684966 - LALCO-192';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo -  - NXH6UST002929041D16600 - LALCO-393', 
+	ie.name = 'Com - NB - lenovo -  - NXH6UST002929041D16600 - LALCO-393',
+	ie.sn_id = 'NXH6UST002929041D16600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-393' 
+	AND ie.name = 'Com - NB - lenovo -  -  - LALCO-393'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5C52N00 - LALCO-164', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5C52N00 - LALCO-164',
+	ie.sn_id = 'NXEFTST0021030D5C52N00',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-164' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054725223 - LALCO-164'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXA5YCN002136137903400 - LALCO-115', 
+	ie.name = 'Com - NB - acer - core i5 - NXA5YCN002136137903400 - LALCO-115',
+	ie.sn_id = 'NXA5YCN002136137903400',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-115' 
+	AND ie.name = 'Com - NB - acer - core i5 -  - LALCO-115'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - 5CG9035Y99 - LALCO-551', 
+	ie.name = 'Com - NB - acer - 0 - 5CG9035Y99 - LALCO-551',
+	ie.sn_id = '5CG9035Y99',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-551' 
+	AND ie.name = 'Com - NB - acer - 0 - 5CG9035Y99  - LALCO-551'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - RADEON - NXGWYST00R051178F37600 - LALCO-547', 
+	ie.name = 'Com - NB - acer - RADEON - NXGWYST00R051178F37600 - LALCO-547',
+	ie.sn_id = 'NXGWYST00R051178F37600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-547' 
+	AND ie.name = 'Com - NB - acer - RADEON - NXGWYST00R051178F37600 - LALCO-547'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - acer -  - 50109649976 - LALCO-183';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer -  - NXGVYST00R04738F317600 - LALCO-371', 
+	ie.name = 'Com - NB - acer -  - NXGVYST00R04738F317600 - LALCO-371',
+	ie.sn_id = 'NXGVYST00R04738F317600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-371' 
+	AND ie.name = 'Com - NB - acer -  - NXGVYST00R04738F317600 - LALCO-371'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R05117A417600 - LALCO-151', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R05117A417600 - LALCO-151',
+	ie.sn_id = 'NXGVYST00R05117A417600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-151' 
+	AND ie.name = 'Com - NB - acer - Intel - 05109683376 - LALCO-151'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - lenovo - Intel - PF1P5ZF6 - LALCO-113', 
+	ie.name = 'Com - DT - lenovo - Intel - PF1P5ZF6 - LALCO-113',
+	ie.sn_id = 'PF1P5ZF6',
+	ie.profile = 'Desktop - ຄອມຕັ້ງໂຕ'
+WHERE ie.user_name = 'LALCO-113' 
+	AND ie.name = 'Com - DT - lenovo - Intel - DESKTOP-​457LKOE - LALCO-113'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R05117AA37600 - LALCO-155', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R05117AA37600 - LALCO-155',
+	ie.sn_id = 'NXGVYST00R05117AA37600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-155' 
+	AND ie.name = 'Com - NB - acer - Intel - 05109693176 - LALCO-155'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - Intel - PF1PAKJP - LALCO-295', 
+	ie.name = 'Com - NB - lenovo - Intel - PF1PAKJP - LALCO-295',
+	ie.sn_id = 'PF1PAKJP',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-295' 
+	AND ie.name = 'Com - NB - lenovo - Intel - 1234567 - LALCO-295'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D4462N00 - LALCO-327', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D4462N00 - LALCO-327',
+	ie.sn_id = 'NXEFTST0021030D4462N00',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-327' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054342223 - LALCO-327'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - asus - core i3 - JBN0GR09R413486 - LALCO-321', 
+	ie.name = 'Com - NB - asus - core i3 - JBN0GR09R413486 - LALCO-321',
+	ie.sn_id = 'JBN0GR09R413486',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-321' 
+	AND ie.name = 'Com - NB - asus - core i3 - X407UF-BV093T - LALCO-321'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - asus - 0 - JBNOGRO9R413486 - LALCO-573';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NT6NXGVYST00R4738E3F7600 - LALCO-123', 
+	ie.name = 'Com - NB - acer - 0 - NT6NXGVYST00R4738E3F7600 - LALCO-123',
+	ie.sn_id = 'NT6NXGVYST00R4738E3F7600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-123' 
+	AND ie.name = 'Com - NB - acer -  - 04723302376 - LALCO-123'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - acer - 0 - NXGVYST00R04738E3F7600 - LALCO-570';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - core i3 - 5CG9035Y8D - LALCO-225', 
+	ie.name = 'Com - NB - hp - core i3 - 5CG9035Y8D - LALCO-225',
+	ie.sn_id = '5CG9035Y8D',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-225' 
+	AND ie.name = 'Com - NB - hp - core i3 - 54G9035Y8D - LALCO-225'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYT00R051179657600 - LALCO-584', 
+	ie.name = 'Com - NB - acer - 0 - NXGVYT00R051179657600 - LALCO-584',
+	ie.sn_id = 'NXGVYT00R051179657600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-584' 
+	AND ie.name = 'Com - NB - acer - 0 - NXGVYST00R051179657600 - LALCO-584'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - acer -  - 05109661376 - LALCO-139';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R051179FC7600 - LALCO-149', 
+	ie.name = 'Com - NB - acer - core i3 - NXGVYST00R051179FC7600 - LALCO-149',
+	ie.sn_id = 'NXGVYST00R051179FC7600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-149' 
+	AND ie.name = 'Com - NB - acer - core i3 - 05109676476 - LALCO-149'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - 0 - 5CG9035YN0 - LALCO-585', 
+	ie.name = 'Com - NB - hp - 0 - 5CG9035YN0 - LALCO-585',
+	ie.sn_id = '5CG9035YN0',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-585' 
+	AND ie.name = 'Com - NB - hp - 0 - 5CG9035YNO - LALCO-585'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R04738E037600 - LALCO-275', 
+	ie.name = 'Com - NB - acer - core i3 - NXGVYST00R04738E037600 - LALCO-275',
+	ie.sn_id = 'NXGVYST00R04738E037600',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-275' 
+	AND ie.name = 'Com - NB - acer - core i3 - 04723296376 - LALCO-275'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXEFTST0021030D7722N00 - LALCO-419', 
+	ie.name = 'Com - NB - acer - core i3 - NXEFTST0021030D7722N00 - LALCO-419',
+	ie.sn_id = 'NXEFTST0021030D7722N00',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-419' 
+	AND ie.name = 'Com - NB - acer - core i3 - 103055154223 - LALCO-419'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5812N00 - LALCO-163', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5812N00 - LALCO-163',
+	ie.sn_id = 'NXEFTST0021030D5812N00',
+	ie.profile = 'Notebook - ຄອມໂນດບຸກ'
+WHERE ie.user_name = 'LALCO-163' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054657223 - LALCO-163'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - PF9XB9505002 - LALCO-491', 
+	ie.name = 'Com - DT - hp - core i5 - PF9XB9505002 - LALCO-491',
+	ie.sn_id = 'PF9XB9505002'
+WHERE ie.user_name = 'LALCO-491' 
+	AND ie.name = 'Com - DT - hp - core i5 - 6CR4237HGL - LALCO-491'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - 0 - NXA5YCN002136161723400 - LALCO-418', 
+	ie.name = 'Com - DT - hp - 0 - NXA5YCN002136161723400 - LALCO-418',
+	ie.sn_id = 'NXA5YCN002136161723400'
+WHERE ie.user_name = 'LALCO-418' 
+	AND ie.name = 'Com - DT - hp -  - NXA5YCN002136161723400 - LALCO-418'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5012N00 - LALCO-161', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5012N00 - LALCO-161',
+	ie.sn_id = 'NXEFTST0021030D5012N00'
+WHERE ie.user_name = 'LALCO-161' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054529223 - LALCO-161'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXH4CST001929018716600 - LALCO-198', 
+	ie.name = 'Com - NB - acer - core i3 - NXH4CST001929018716600 - LALCO-198',
+	ie.sn_id = 'NXH4CST001929018716600'
+WHERE ie.user_name = 'LALCO-198' 
+	AND ie.name = 'Com - NB - acer - core i3 - HLZ29560NG - LALCO-198'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXEFTST0021030D66A2N00 - LALCO-169', 
+	ie.name = 'Com - NB - acer - core i3 - NXEFTST0021030D66A2N00 - LALCO-169',
+	ie.sn_id = 'NXEFTST0021030D66A2N00'
+WHERE ie.user_name = 'LALCO-169' 
+	AND ie.name = 'Com - NB - acer - core i3 - 103054890223 - LALCO-169'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5DB2N00 - LALCO-165', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5DB2N00 - LALCO-165',
+	ie.sn_id = 'NXEFTST0021030D5DB2N00'
+WHERE ie.user_name = 'LALCO-165' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054747223 - LALCO-165'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo -  - PF1P5ZHN - LALCO-247', 
+	ie.name = 'Com - NB - lenovo -  - PF1P5ZHN - LALCO-247',
+	ie.sn_id = 'PF1P5ZHN'
+WHERE ie.user_name = 'LALCO-247' 
+	AND ie.name = 'Com - NB - lenovo -  - PF1P5ZHZ MTM81D5007MTA - LALCO-247'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - AMD A6 - PF1P9T41 - LALCO-239', 
+	ie.name = 'Com - NB - lenovo - AMD A6 - PF1P9T41 - LALCO-239',
+	ie.sn_id = 'PF1P9T41'
+WHERE ie.user_name = 'LALCO-239' 
+	AND ie.name = 'Com - NB - lenovo - AMD A6 - 330-14AST - LALCO-239'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R04738FBC7600 - LALCO-318', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R04738FBC7600 - LALCO-318',
+	ie.sn_id = 'NXGVYST00R04738FBC7600'
+WHERE ie.user_name = 'LALCO-318' 
+	AND ie.name = 'Com - NB - acer - Intel - 04723340476 - LALCO-318'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGXTST00181902E856600 - LALCO-271', 
+	ie.name = 'Com - NB - acer - 0 - NXGXTST00181902E856600 - LALCO-271',
+	ie.sn_id = 'NXGXTST00181902E856600'
+WHERE ie.user_name = 'LALCO-271' 
+	AND ie.name = 'Com - NB - acer -  -  - LALCO-271'
+;
+
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - NB - lenovo - 0 - PF1PA5T2 - LALCO-544';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC1ADMJ1 - LALCO-45', 
+	ie.name = 'Com - DT - lenovo - core i5 - PC1ADMJ1 - LALCO-45',
+	ie.sn_id = 'PC1ADMJ1'
+WHERE ie.user_name = 'LALCO-45' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PC19VSMC - LALCO-45'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC1AJSPZ - LALCO-32', 
+	ie.name = 'Com - DT - lenovo - core i5 - PC1AJSPZ - LALCO-32',
+	ie.sn_id = 'PC1AJSPZ'
+WHERE ie.user_name = 'LALCO-32' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PCIAJSPZ - LALCO-32'
+;
+
+DELETE FROM tabIT_Equipment
+WHERE name = 'Com - DT - hp - core i5 - 6CR42487ZL - LALCO-542';
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - asus - 0 - JBN0GR09R908480 - LALCO-572', 
+	ie.name = 'Com - NB - asus - 0 - JBN0GR09R908480 - LALCO-572',
+	ie.sn_id = 'JBN0GR09R908480'
+WHERE ie.user_name = 'LALCO-572' 
+	AND ie.name = 'Com - NB - asus - 0 - JBNOGRO9R908480 - LALCO-572'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo -  - PF1PAMW8 - LALCO-256', 
+	ie.name = 'Com - NB - lenovo -  - PF1PAMW8 - LALCO-256',
+	ie.sn_id = 'PF1PAMW8'
+WHERE ie.user_name = 'LALCO-256' 
+	AND ie.name = 'Com - NB - lenovo -  - PF1PAMWB - LALCO-256'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1P69DD - LALCO-293', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P69DD - LALCO-293',
+	ie.sn_id = 'PF1P69DD'
+WHERE ie.user_name = 'LALCO-293' 
+	AND ie.name = 'Com - NB - lenovo -  -  - LALCO-293'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - AMD A6 - PF1P9T41 - LALCO-239', 
+	ie.name = 'Com - NB - lenovo - AMD A6 - PF1P9T41 - LALCO-239',
+	ie.sn_id = 'PF1P9T41'
+WHERE ie.user_name = 'LALCO-239' 
+	AND ie.name = 'Com - NB - lenovo - AMD A6 - 330-14AST - LALCO-239'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - PF1PA9Z3 - LALCO-147', 
+	ie.name = 'Com - NB - acer - core i3 - PF1PA9Z3 - LALCO-147',
+	ie.sn_id = 'PF1PA9Z3'
+WHERE ie.user_name = 'LALCO-147' 
+	AND ie.name = 'Com - NB - acer - core i3 - 05109672676 - LALCO-147'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - MICB1096030817AE01A2 - LALCO-217', 
+	ie.name = 'Com - NB - acer - Intel - MICB1096030817AE01A2 - LALCO-217',
+	ie.sn_id = 'MICB1096030817AE01A2'
+WHERE ie.user_name = 'LALCO-217' 
+	AND ie.name = 'Com - NB - acer - Intel - ບໍ່ມີ - LALCO-217'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXEFTST0021030D4142N00 - LALCO-156', 
+	ie.name = 'Com - NB - acer - core i5 - NXEFTST0021030D4142N00 - LALCO-156',
+	ie.sn_id = 'NXEFTST0021030D4142N00'
+WHERE ie.user_name = 'LALCO-156' 
+	AND ie.name = 'Com - NB - acer - core i5 - 103054292223 - LALCO-156'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R051179137600 - LALCO-133', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R051179137600 - LALCO-133',
+	ie.sn_id = 'NXGVYST00R051179137600'
+WHERE ie.user_name = 'LALCO-133' 
+	AND ie.name = 'Com - NB - acer - Intel - 05109653176 - LALCO-133'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D59F2N00 - LALCO-297', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D59F2N00 - LALCO-297',
+	ie.sn_id = 'NXEFTST0021030D59F2N00'
+WHERE ie.user_name = 'LALCO-297' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054687223 - LALCO-297'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - AMD A6 - PF1PAGZT - LALCO-274', 
+	ie.name = 'Com - NB - lenovo - AMD A6 - PF1PAGZT - LALCO-274',
+	ie.sn_id = 'PF1PAGZT'
+WHERE ie.user_name = 'LALCO-274' 
+	AND ie.name = 'Com - NB - lenovo - AMD A6 -  - LALCO-274'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - 0 - 0 - NXEFTST0021030D4862N00 - LALCO-409', 
+	ie.name = 'Com - NB - 0 - 0 - NXEFTST0021030D4862N00 - LALCO-409',
+	ie.sn_id = 'NXEFTST0021030D4862N00'
+WHERE ie.user_name = 'LALCO-409' 
+	AND ie.name = 'Com - NB - 0 - 0 - NXEFGTST0021030D4862N00 - LALCO-409'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXEFTST0021030D4CB2N00 - LALCO-160', 
+	ie.name = 'Com - NB - acer - core i3 - NXEFTST0021030D4CB2N00 - LALCO-160',
+	ie.sn_id = 'NXEFTST0021030D4CB2N00'
+WHERE ie.user_name = 'LALCO-160' 
+	AND ie.name = 'Com - NB - acer - core i3 - 103054475223 - LALCO-160'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - 0 - 0 - PF1PAFCR - LALCO-408', 
+	ie.name = 'Com - DT - 0 - 0 - PF1PAFCR - LALCO-408',
+	ie.sn_id = 'PF1PAFCR'
+WHERE ie.user_name = 'LALCO-408' 
+	AND ie.name = 'Com - DT -  -  -  - LALCO-408'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - NXGVYST00R04738E647600 - LALCO-399', 
+	ie.name = 'Com - DT - hp - core i5 - NXGVYST00R04738E647600 - LALCO-399',
+	ie.sn_id = 'NXGVYST00R04738E647600'
+WHERE ie.user_name = 'LALCO-399' 
+	AND ie.name = 'Com - DT - hp - core i5 - 6CR4247TF9 - LALCO-399'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1P6158 - LALCO-241', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P6158 - LALCO-241',
+	ie.sn_id = 'PF1P6158'
+WHERE ie.user_name = 'LALCO-241' 
+	AND ie.name = 'Com - NB - lenovo -  - JVHFC1 - LALCO-241'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D6F82N00 - LALCO-171', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D6F82N00 - LALCO-171',
+	ie.sn_id = 'NXEFTST0021030D6F82N00'
+WHERE ie.user_name = 'LALCO-171' 
+	AND ie.name = 'Com - NB - acer - Intel - 103055032223 - LALCO-171'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - core i5 - CND9090WSD - LALCO-385', 
+	ie.name = 'Com - NB - hp - core i5 - CND9090WSD - LALCO-385',
+	ie.sn_id = 'CND9090WSD'
+WHERE ie.user_name = 'LALCO-385' 
+	AND ie.name = 'Com - NB - hp - core i5 -  - LALCO-385'
+;
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXH6UST002930033A06600 - LALCO-305', 
+	ie.name = 'Com - NB - acer - core i3 - NXH6UST002930033A06600 - LALCO-305',
+	ie.sn_id = 'NXH6UST002930033A06600'
+WHERE ie.user_name = 'LALCO-305' 
+	AND ie.name = 'Com - NB - acer - core i3 - 123 - LALCO-305'
+;
+
+
+SELECT * FROM tabIT_Equipment
+WHERE name = 'Com - NB - hp - core i5 - CND9090WSD - LALCO-385'
+
+
+-- 2025-07-07 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - 5CG8345YQM - LALCO-357', 
+	ie.name = 'Com - NB - acer - core i3 - 5CG8345YQM - LALCO-357',
+	ie.sn_id = '5CG8345YQM'
+WHERE ie.user_name = 'LALCO-357' 
+	AND ie.name = 'Com - NB - acer - core i3 -  - LALCO-357'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R05117AA67600 - LALCO-369', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R05117AA67600 - LALCO-369',
+	ie.sn_id = 'NXGVYST00R05117AA67600'
+WHERE ie.user_name = 'LALCO-369' 
+	AND ie.name = 'Com - NB - acer - Intel -  - LALCO-369'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - NXEFTS0021030D6CE2N00 - LALCO-620', 
+	ie.name = 'Com - NB - lenovo - 0 - NXEFTS0021030D6CE2N00 - LALCO-620',
+	ie.sn_id = 'NXEFTS0021030D6CE2N00'
+WHERE ie.user_name = 'LALCO-620' 
+	AND ie.name = 'Com - NB - lenovo - 0 - PF1PAS42 - LALCO-620'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXEFTST0021030D7B82N00 - LALCO-621', 
+	ie.name = 'Com - NB - acer - 0 - NXEFTST0021030D7B82N00 - LALCO-621',
+	ie.sn_id = 'NXEFTST0021030D7B82N00'
+WHERE ie.user_name = 'LALCO-621' 
+	AND ie.name = 'Com - NB - acer - 0 - NXEFTST0021030D6CE2N00 - LALCO-621'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R051179307600 - LALCO-136', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R051179307600 - LALCO-136',
+	ie.sn_id = 'NXGVYST00R051179307600'
+WHERE ie.user_name = 'LALCO-136' 
+	AND ie.name = 'Com - NB - acer - Intel - 05109656076 - LALCO-136'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXH6UST0029300313B6600 - LALCO-193', 
+	ie.name = 'Com - NB - acer - core i3 - NXH6UST0029300313B6600 - LALCO-193',
+	ie.sn_id = 'NXH6UST0029300313B6600'
+WHERE ie.user_name = 'LALCO-193' 
+	AND ie.name = 'Com - NB - acer - core i3 - 93001260366 - LALCO-193'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1P9LW8 - LALCO-320', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P9LW8 - LALCO-320',
+	ie.sn_id = 'PF1P9LW8'
+WHERE ie.user_name = 'LALCO-320' 
+	AND ie.name = 'Com - NB - lenovo -  - ບໍ່ມີ - LALCO-320'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXA5YCN0021361719E3400 - LALCO-273', 
+	ie.name = 'Com - NB - acer - core i5 - NXA5YCN0021361719E3400 - LALCO-273',
+	ie.sn_id = 'NXA5YCN0021361719E3400'
+WHERE ie.user_name = 'LALCO-273' 
+	AND ie.name = 'Com - NB - acer - core i5 - 123456 - LALCO-273'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYST00R05117A757600 - LALCO-292', 
+	ie.name = 'Com - NB - acer - 0 - NXGVYST00R05117A757600 - LALCO-292',
+	ie.sn_id = 'NXGVYST00R05117A757600'
+WHERE ie.user_name = 'LALCO-292' 
+	AND ie.name = 'Com - NB - acer -  - 05109688576 - LALCO-292'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D4CD2N00 - LALCO-284', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D4CD2N00 - LALCO-284',
+	ie.sn_id = 'NXEFTST0021030D4CD2N00'
+WHERE ie.user_name = 'LALCO-284' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054477223 - LALCO-284'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - S2N0CV027216064 - LALCO-281', 
+	ie.name = 'Com - NB - acer - Intel - S2N0CV027216064 - LALCO-281',
+	ie.sn_id = 'S2N0CV027216064'
+WHERE ie.user_name = 'LALCO-281' 
+	AND ie.name = 'Com - NB - acer - Intel - NXGVYST00R04738E2D7600 - LALCO-281'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer -  - NXGVYST00R04738E357600 - LALCO-122', 
+	ie.name = 'Com - NB - acer -  - NXGVYST00R04738E357600 - LALCO-122',
+	ie.sn_id = 'NXGVYST00R04738E357600'
+WHERE ie.user_name = 'LALCO-122' 
+	AND ie.name = 'Com - NB - acer -  - 04723301376 - LALCO-122'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1PAJQV - LALCO-324', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1PAJQV - LALCO-324',
+	ie.sn_id = 'PF1PAJQV'
+WHERE ie.user_name = 'LALCO-324' 
+	AND ie.name = 'Com - NB - lenovo -  - ບໍ່ມີ - LALCO-324'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R051179897600 - LALCO-141', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R051179897600 - LALCO-141',
+	ie.sn_id = 'NXGVYST00R051179897600'
+WHERE ie.user_name = 'LALCO-141' 
+	AND ie.name = 'Com - NB - acer - Intel - 05109664976 - LALCO-141'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXA5YCN002136169EB3400 - LALCO-176', 
+	ie.name = 'Com - NB - acer - core i5 - NXA5YCN002136169EB3400 - LALCO-176',
+	ie.sn_id = 'NXA5YCN002136169EB3400'
+WHERE ie.user_name = 'LALCO-176' 
+	AND ie.name = 'Com - NB - acer - core i5 - 13609265134 - LALCO-176'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R04738EA57600 - LALCO-126', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R04738EA57600 - LALCO-126',
+	ie.sn_id = 'NXGVYST00R04738EA57600'
+WHERE ie.user_name = 'LALCO-126' 
+	AND ie.name = 'Com - NB - acer - Intel - 04723312576 - LALCO-126'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC19VSAS - LALCO-17', 
+	ie.name = 'Com - DT - lenovo - core i5 - PC19VSAS - LALCO-17',
+	ie.sn_id = 'PC19VSAS'
+WHERE ie.user_name = 'LALCO-17' 
+	AND ie.name = 'Com - DT - lenovo - core i5 - PC19VSGJ - LALCO-17'
+;
+
+
+-- 2025-07-08 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYST00R051179D07600 - LALCO-581', 
+	ie.name = 'Com - NB - acer - 0 - NXGVYST00R051179D07600 - LALCO-581',
+	ie.sn_id = 'NXGVYST00R051179D07600'
+WHERE ie.user_name = 'LALCO-581' 
+	AND ie.name = 'Com - NB - acer - 0 - NXGVYSTOOR051179D07600 - LALCO-581'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - asus - core i3 - JBN0GR09R926489 - LALCO-435', 
+	ie.name = 'Com - NB - asus - core i3 - JBN0GR09R926489 - LALCO-435',
+	ie.sn_id = 'JBN0GR09R926489'
+WHERE ie.user_name = 'LALCO-435' 
+	AND ie.name = 'Com - NB - asus - core i3 - PPD-QCNFA335 - LALCO-435'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i7 - NXA6SAA0010470AC652N00 - LALCO-213', 
+	ie.name = 'Com - NB - acer - core i7 - NXA6SAA0010470AC652N00 - LALCO-213',
+	ie.sn_id = 'NXA6SAA0010470AC652N00'
+WHERE ie.user_name = 'LALCO-213' 
+	AND ie.name = 'Com - NB - acer - core i7 - S/N:NXA6SAA0010470AC652N00 - LALCO-213'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGFSST001714172A97600 - LALCO-185', 
+	ie.name = 'Com - NB - acer - core i3 - NXGFSST001714172A97600 - LALCO-185',
+	ie.sn_id = 'NXGFSST001714172A97600'
+WHERE ie.user_name = 'LALCO-185' 
+	AND ie.name = 'Com - NB - acer - core i3 - 71409488976 - LALCO-185'
+;
+
+
+-- 2025-07-09Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R05117A7E7600 - LALCO-285', 
+	ie.name = 'Com - NB - acer - core i3 - NXGVYST00R05117A7E7600 - LALCO-285',
+	ie.sn_id = 'NXGVYST00R05117A7E7600'
+WHERE ie.user_name = 'LALCO-285' 
+	AND ie.name = 'Com - NB - acer - core i3 - 05109689476 - LALCO-285'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - Intel - PF1PAKJH - LALCO-337', 
+	ie.name = 'Com - NB - lenovo - Intel - PF1PAKJH - LALCO-337',
+	ie.sn_id = 'PF1PAKJH'
+WHERE ie.user_name = 'LALCO-337' 
+	AND ie.name = 'Com - NB - lenovo - Intel - JVHFC1 - LALCO-337'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXMN7ST0055031EF717600 - LALCO-184', 
+	ie.name = 'Com - NB - acer - Intel - NXMN7ST0055031EF717600 - LALCO-184',
+	ie.sn_id = 'NXMN7ST0055031EF717600'
+WHERE ie.user_name = 'LALCO-184' 
+	AND ie.name = 'Com - NB - acer - Intel - 50312683376 - LALCO-184'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - 0 - 0 - NXA77ST005210015032N00 - LALCO-299', 
+	ie.name = 'Com - NB - 0 - 0 - NXA77ST005210015032N00 - LALCO-299',
+	ie.sn_id = 'NXA77ST005210015032N00'
+WHERE ie.user_name = 'LALCO-299' 
+	AND ie.name = 'Com - NB -  -  - ບໍ່ມີຄອມໃຊ້ ໃຊ້ຄອມສ່ວນຕົວ - LALCO-299'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - core i3 - PF1P5ZHV - LALCO-261', 
+	ie.name = 'Com - NB - lenovo - core i3 - PF1P5ZHV - LALCO-261',
+	ie.sn_id = 'PF1P5ZHV'
+WHERE ie.user_name = 'LALCO-261' 
+	AND ie.name = 'Com - NB - lenovo - core i3 - SN:PF1P5ZHV - LALCO-261'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXA7BST0031050CC452N00 - LALCO-426', 
+	ie.name = 'Com - NB - acer - core i3 - NXA7BST0031050CC452N00 - LALCO-426',
+	ie.sn_id = 'NXA7BST0031050CC452N00'
+WHERE ie.user_name = 'LALCO-426' 
+	AND ie.name = 'Com - NB - acer - core i3 - HLZAX201NG - LALCO-426'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - core i3 - PF2P5LH5 - LALCO-258', 
+	ie.name = 'Com - NB - lenovo - core i3 - PF2P5LH5 - LALCO-258',
+	ie.sn_id = 'PF2P5LH5'
+WHERE ie.user_name = 'LALCO-258' 
+	AND ie.name = 'Com - NB - lenovo - core i3 - PF2P5LRS - LALCO-258'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - core i3 - PF2P5LH5 - LALCO-258', 
+	ie.name = 'Com - NB - lenovo - core i3 - PF2P5LH5 - LALCO-258',
+	ie.sn_id = 'PF2P5LH5'
+WHERE ie.user_name = 'LALCO-258' 
+	AND ie.name = 'Com - NB - lenovo - core i3 - PF2P5LRS - LALCO-258'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXGVYST00R051179D77600 - LALCO-353', 
+	ie.name = 'Com - NB - acer - core i5 - NXGVYST00R051179D77600 - LALCO-353',
+	ie.sn_id = 'NXGVYST00R051179D77600'
+WHERE ie.user_name = 'LALCO-353' 
+	AND ie.name = 'Com - NB - acer - core i5 -  - LALCO-353'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5602N00 - LALCO-162', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5602N00 - LALCO-162',
+	ie.sn_id = 'NXEFTST0021030D5602N00'
+WHERE ie.user_name = 'LALCO-162' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054624223 - LALCO-162'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+RIGHT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel Celeron - NXGVYST00R04738F807600 - LALCO-679', 
+	ie.name = 'Com - NB - acer - Intel Celeron - NXGVYST00R04738F807600 - LALCO-679',
+	ie.sn_id = 'NXGVYST00R04738F807600'
+WHERE ie.user_name = 'LALCO-679' 
+	AND ie.name = 'Com - NB - acer - Intel Celeron - NXGVYST00R05117AC27600 - LALCO-679'
+;
+
+select * from tabIT_Equipment where user_name = 'LALCO-679' 
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - CR4237HCF - LALCO-502', 
+	ie.name = 'Com - DT - hp - core i5 - CR4237HCF - LALCO-502',
+	ie.sn_id = 'CR4237HCF'
+WHERE ie.user_name = 'LALCO-502' 
+	AND ie.name = 'Com - DT - hp - core i5 - 6CR4237HCF - LALCO-502'
+;
+
+
+DELETE FROM tabIT_Equipment where name = 'Com - DT - hp - core i3 - CNC419P3BT - LALCO-384';
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - Intel - PF360HKT - LALCO-237', 
+	ie.name = 'Com - NB - lenovo - Intel - PF360HKT - LALCO-237',
+	ie.sn_id = 'PF360HKT'
+WHERE ie.user_name = 'LALCO-237' 
+	AND ie.name = 'Com - NB - lenovo - Intel - 00330-80000-0000-AA547 - LALCO-237'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - PF1P6152 - LALCO-187', 
+	ie.name = 'Com - NB - acer - Intel - PF1P6152 - LALCO-187',
+	ie.sn_id = 'PF1P6152'
+WHERE ie.user_name = 'LALCO-187' 
+	AND ie.name = 'Com - NB - acer - Intel - 84802320466 - LALCO-187'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXKLT00E401045863400 - LALCO-211', 
+	ie.name = 'Com - NB - acer - core i5 - NXKLT00E401045863400 - LALCO-211',
+	ie.sn_id = 'NXKLT00E401045863400'
+WHERE ie.user_name = 'LALCO-211' 
+	AND ie.name = 'Com - NB - acer - core i5 - NXKLQST00E401045863400 - LALCO-211'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1P8AZ0 - LALCO-308', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P8AZ0 - LALCO-308',
+	ie.sn_id = 'PF1P8AZ0'
+WHERE ie.user_name = 'LALCO-308' 
+	AND ie.name = 'Com - NB - lenovo -  - ບໍ່ມີ - LALCO-308'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 -  PF1P5TWL- LALCO-270', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P5TWL - LALCO-270',
+	ie.sn_id = 'PF1P5TWL'
+WHERE ie.user_name = 'LALCO-270' 
+	AND ie.name = 'Com - NB - lenovo -  -  - LALCO-270'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D6332N00 - LALCO-168', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D6332N00 - LALCO-168',
+	ie.sn_id = 'NXEFTST0021030D6332N00'
+WHERE ie.user_name = 'LALCO-168' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054835223 - LALCO-168'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D5C92N00 - LALCO-278', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D5C92N00 - LALCO-278',
+	ie.sn_id = 'NXEFTST0021030D5C92N00'
+WHERE ie.user_name = 'LALCO-278' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054729223 - LALCO-278'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - JBN0GR09R90248A - LALCO-492', 
+	ie.name = 'Com - DT - hp - core i5 - JBN0GR09R90248A - LALCO-492',
+	ie.sn_id = 'JBN0GR09R90248A'
+WHERE ie.user_name = 'LALCO-492' 
+	AND ie.name = 'Com - DT - hp - core i5 - 6CR4247TG2 - LALCO-492'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R051179C47600 - LALCO-312', 
+	ie.name = 'Com - NB - acer - Intel - NXGVYST00R051179C47600 - LALCO-312',
+	ie.sn_id = 'NXGVYST00R051179C47600'
+WHERE ie.user_name = 'LALCO-312' 
+	AND ie.name = 'Com - NB - acer - Intel -  - LALCO-312'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D4C72N00 - LALCO-159', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D4C72N00 - LALCO-159',
+	ie.sn_id = 'NXEFTST0021030D4C72N00'
+WHERE ie.user_name = 'LALCO-159' 
+	AND ie.name = 'Com - NB - acer - Intel - 103054471223 - LALCO-159'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - 05109666476 - LALCO-142', 
+	ie.name = 'Com - NB - acer - core i3 - 05109666476 - LALCO-142',
+	ie.sn_id = 'NXGVYST00R051179987600'
+WHERE ie.user_name = 'LALCO-142' 
+	AND ie.name = 'Com - NB - acer - core i3 - 05109666476 - LALCO-142'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXEG9ST00404418BC87600 - LALCO-119', 
+	ie.name = 'Com - NB - acer - core i3 - NXEG9ST00404418BC87600 - LALCO-119',
+	ie.sn_id = 'NXEG9ST00404418BC87600'
+WHERE ie.user_name = 'LALCO-119' 
+	AND ie.name = 'Com - NB - acer - core i3 - 04410132076 - LALCO-119'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - core i5 - NXGVYST00R051179627600 - LALCO-608', 
+	ie.name = 'Com - NB - hp - core i5 - NXGVYST00R051179627600 - LALCO-608',
+	ie.sn_id = 'NXGVYST00R051179627600'
+WHERE ie.user_name = 'LALCO-608' 
+	AND ie.name = 'Com - NB - hp - core i5 - 5CG9035Y0Y - LALCO-608'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - PF1P9W3F - LALCO-378', 
+	ie.name = 'Com - NB - lenovo - 0 - PF1P9W3F - LALCO-378',
+	ie.sn_id = 'PF1P9W3F'
+WHERE ie.user_name = 'LALCO-378' 
+	AND ie.name = 'Com - NB - lenovo -  -  - LALCO-378'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXEFTST0021030D63A2N00 - LALCO-288', 
+	ie.name = 'Com - NB - acer - Intel - NXEFTST0021030D63A2N00 - LALCO-288',
+	ie.sn_id = 'NXEFTST0021030D63A2N00'
+WHERE ie.user_name = 'LALCO-288' 
+	AND ie.name = 'Com - NB - acer - Intel - 123456 - LALCO-288'
+;
+
+
+-- 2025-07-09 Update profile based on KHAN PCs
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXEFTST0021030D6512N00    - LALCO-351', 
+	ie.name = 'Com - NB - acer - 0 - NXEFTST0021030D6512N00    - LALCO-351',
+	ie.sn_id = 'NXEFTST0021030D6512N00   '
+WHERE ie.user_name = 'LALCO-351' 
+	AND ie.name = 'Com - NB - acer -  -  - LALCO-351'
+;
+
+
+-- 2025-07-11
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYST00R04738DFA7600 - LALCO-175', 
+        ie.name = 'Com - NB - acer - 0 - NXGVYST00R04738DFA7600 - LALCO-175',
+        ie.sn_id = 'NXGVYST00R04738DFA7600'
+WHERE ie.user_name = 'LALCO-175' 
+        AND ie.name = 'Com - NB - acer -  - 123456 - LALCO-175'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R051179AC7600 - LALCO-541', 
+        ie.name = 'Com - NB - acer - core i3 - NXGVYST00R051179AC7600 - LALCO-541',
+        ie.sn_id = 'NXGVYST00R051179AC7600'
+WHERE ie.user_name = 'LALCO-541' 
+        AND ie.name = 'Com - NB - acer - core i3 - NXMXJST047545030EB3400 - LALCO-541'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXABNCN0021380FBE83400 - LALCO-417', 
+        ie.name = 'Com - NB - acer - core i5 - NXABNCN0021380FBE83400 - LALCO-417',
+        ie.sn_id = 'NXABNCN0021380FBE83400'
+WHERE ie.user_name = 'LALCO-417' 
+        AND ie.name = 'Com - NB - acer - core i5 -  - LALCO-417'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R051179B87600 - LALCO-144', 
+        ie.name = 'Com - NB - acer - core i3 - NXGVYST00R051179B87600 - LALCO-144',
+        ie.sn_id = 'NXGVYST00R051179B87600'
+WHERE ie.user_name = 'LALCO-144' 
+        AND ie.name = 'Com - NB - acer - core i3 - 05109669676 - LALCO-144'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXABNCN0021380DBB63400 - LALCO-331', 
+        ie.name = 'Com - NB - acer - 0 - NXABNCN0021380DBB63400 - LALCO-331',
+        ie.sn_id = 'NXABNCN0021380DBB63400'
+WHERE ie.user_name = 'LALCO-331' 
+        AND ie.name = 'Com - NB - acer -  -  - LALCO-331'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGVYST00R05117ACD7600 - LALCO-279', 
+        ie.name = 'Com - NB - acer - Intel - NXGVYST00R05117ACD7600 - LALCO-279',
+        ie.sn_id = 'NXGVYST00R05117ACD7600'
+WHERE ie.user_name = 'LALCO-279' 
+        AND ie.name = 'Com - NB - acer - Intel - 05109697376 - LALCO-279'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXABNCN0021380FD4A3400 - LALCO-415', 
+        ie.name = 'Com - NB - acer - core i5 - NXABNCN0021380FD4A3400 - LALCO-415',
+        ie.sn_id = 'NXABNCN0021380FD4A3400'
+WHERE ie.user_name = 'LALCO-415' 
+        AND ie.name = 'Com - NB - acer - core i5 - C - LALCO-415'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i5 - 6CR4247TF7 - LALCO-374', 
+        ie.name = 'Com - DT - hp - core i5 - 6CR4247TF7 - LALCO-374',
+        ie.sn_id = '6CR4247TF7'
+WHERE ie.user_name = 'LALCO-374' 
+        AND ie.name = 'Com - DT - hp - core i5 -  - LALCO-374'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R051179A67600 - LALCO-205', 
+        ie.name = 'Com - NB - acer - core i3 - NXGVYST00R051179A67600 - LALCO-205',
+        ie.sn_id = 'NXGVYST00R051179A67600'
+WHERE ie.user_name = 'LALCO-205' 
+        AND ie.name = 'Com - NB - acer - core i3 - NXGCVYST00R051179A67600 - LALCO-205'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - intel - NXGVYST00R05117AC27600 - LALCO-135', 
+        ie.name = 'Com - NB - acer - intel - NXGVYST00R05117AC27600 - LALCO-135',
+        ie.sn_id = 'NXGVYST00R05117AC27600'
+WHERE ie.user_name = 'LALCO-135' 
+        AND ie.name = 'Com - NB - acer - core i5 - 05109655976 - LALCO-135'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - 0 - core i3 - NXK7HST0032390F7AF3400 - LALCO-416', 
+        ie.name = 'Com - NB - 0 - core i3 - NXK7HST0032390F7AF3400 - LALCO-416',
+        ie.sn_id = 'NXK7HST0032390F7AF3400'
+WHERE ie.user_name = 'LALCO-416' 
+        AND ie.name = 'Com - NB -  - core i3 - 92901681366 - LALCO-416'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXABNCN0021380D7D73400 - LALCO-197', 
+        ie.name = 'Com - NB - acer - core i5 - NXABNCN0021380D7D73400 - LALCO-197',
+        ie.sn_id = 'NXABNCN0021380D7D73400'
+WHERE ie.user_name = 'LALCO-197' 
+        AND ie.name = 'Com - NB - acer - core i5 - B6977FBA-64A8-4DAD-9DEC-43A6C9FF6282 - LALCO-197'
+;
+#N/A
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXKLQST00E401045573400 - LALCO-143', 
+        ie.name = 'Com - NB - acer - Intel - NXKLQST00E401045573400 - LALCO-143',
+        ie.sn_id = 'NXKLQST00E401045573400'
+WHERE ie.user_name = 'LALCO-143' 
+        AND ie.name = 'Com - NB - acer - Intel - 05109668276 - LALCO-143'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - hp - core i3 - NXH6UST0029300338F6600 - LALCO-103', 
+        ie.name = 'Com - DT - hp - core i3 - NXH6UST0029300338F6600 - LALCO-103',
+        ie.sn_id = 'NXH6UST0029300338F6600'
+WHERE ie.user_name = 'LALCO-103' 
+        AND ie.name = 'Com - DT - hp - core i3 - 00331-10000-00001-AA811 - LALCO-103'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYST00R051179D47600 - LALCO-146', 
+        ie.name = 'Com - NB - acer - 0 - NXGVYST00R051179D47600 - LALCO-146',
+        ie.sn_id = 'NXGVYST00R051179D47600'
+WHERE ie.user_name = 'LALCO-146' 
+        AND ie.name = 'Com - NB - acer -  - 05109672476 - LALCO-146'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - acer - core i3 - NXGVYST00R051179BE7600 - LALCO-440', 
+        ie.name = 'Com - DT - acer - core i3 - NXGVYST00R051179BE7600 - LALCO-440',
+        ie.sn_id = 'NXGVYST00R051179BE7600'
+WHERE ie.user_name = 'LALCO-440' 
+        AND ie.name = 'Com - DT - acer - core i3 -  - LALCO-440'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R04738E2C7600 - LALCO-296', 
+        ie.name = 'Com - NB - acer - core i3 - NXGVYST00R04738E2C7600 - LALCO-296',
+        ie.sn_id = 'NXGVYST00R04738E2C7600'
+WHERE ie.user_name = 'LALCO-296' 
+        AND ie.name = 'Com - NB - acer - core i3 - 04723300476 - LALCO-296'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - Intel - PF1P9T5X - LALCO-425', 
+        ie.name = 'Com - NB - lenovo - Intel - PF1P9T5X - LALCO-425',
+        ie.sn_id = 'PF1P9T5X'
+WHERE ie.user_name = 'LALCO-425' 
+        AND ie.name = 'Com - NB - lenovo - Intel - SN:PF1P9T5X MTM:81D5007MTA - LALCO-425'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXK6SAA001302077383400 - LALCO-266', 
+        ie.name = 'Com - NB - acer - 0 - NXK6SAA001302077383400 - LALCO-266',
+        ie.sn_id = 'NXK6SAA001302077383400'
+WHERE ie.user_name = 'LALCO-266' 
+        AND ie.name = 'Com - NB - acer -  -  - LALCO-266'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - XH6UST0029300338A6600 - LALCO-306', 
+        ie.name = 'Com - NB - acer - 0 - XH6UST0029300338A6600 - LALCO-306',
+        ie.sn_id = 'XH6UST0029300338A6600'
+WHERE ie.user_name = 'LALCO-306' 
+        AND ie.name = 'Com - NB - acer -  -  - LALCO-306'
+;
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - hp - core i3 - 5CD82566D6 - LALCO-401', 
+        ie.name = 'Com - NB - hp - core i3 - 5CD82566D6 - LALCO-401',
+        ie.sn_id = '5CD82566D6'
+WHERE ie.user_name = 'LALCO-401' 
+        AND ie.name = 'Com - NB - hp - core i3 -  - LALCO-401'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i3 - NXGVYST00R0511792F7600 - LALCO-341', 
+        ie.name = 'Com - NB - acer - core i3 - NXGVYST00R0511792F7600 - LALCO-341',
+        ie.sn_id = 'NXGVYST00R0511792F7600'
+WHERE ie.user_name = 'LALCO-341' 
+        AND ie.name = 'Com - NB - acer - core i3 -  - LALCO-341'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - DT - lenovo - core i5 - PC18KPKA - LALCO-716', 
+        ie.name = 'Com - DT - lenovo - core i5 - PC18KPKA - LALCO-716',
+        ie.sn_id = 'PC18KPKA'
+WHERE ie.user_name = 'LALCO-716' 
+        AND ie.name = 'Com - DT - lenovo - core i5 - PC19VSDF - LALCO-716'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXEFTST0021030D6512N00 - LALCO-351', 
+        ie.name = 'Com - NB - acer - 0 - NXEFTST0021030D6512N00 - LALCO-351',
+        ie.sn_id = 'NXEFTST0021030D6512N00'
+WHERE ie.user_name = 'LALCO-351' 
+        AND ie.name = 'Com - NB - acer - 0 - NXEFTST0021030D6512N00    - LALCO-351'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - core i5 - NXKLQST00E401045863400 - LALCO-211', 
+        ie.name = 'Com - NB - acer - core i5 - NXKLQST00E401045863400 - LALCO-211',
+        ie.sn_id = 'NXKLQST00E401045863400'
+WHERE ie.user_name = 'LALCO-211' 
+        AND ie.name = 'Com - NB - acer - core i5 - NXKLT00E401045863400 - LALCO-211'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - asus - 0 - JBN0GR09R768483 - LALCO-696', 
+        ie.name = 'Com - NB - asus - 0 - JBN0GR09R768483 - LALCO-696',
+        ie.sn_id = 'JBN0GR09R768483'
+WHERE ie.user_name = 'LALCO-696' 
+        AND ie.name = 'Com - NB - asus - 0 - JBN0GR09R768384 - LALCO-696'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - Intel - NXGZPST0018380128C6600 - LALCO-217', 
+        ie.name = 'Com - NB - acer - Intel - NXGZPST0018380128C6600 - LALCO-217',
+        ie.sn_id = 'NXGZPST0018380128C6600'
+WHERE ie.user_name = 'LALCO-217' 
+        AND ie.name = 'Com - NB - acer - Intel - MICB1096030817AE01A2 - LALCO-217'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - lenovo - 0 - NXEFTST0021030D6CE2N00 - LALCO-620', 
+        ie.name = 'Com - NB - lenovo - 0 - NXEFTST0021030D6CE2N00 - LALCO-620',
+        ie.sn_id = 'NXEFTST0021030D6CE2N00'
+WHERE ie.user_name = 'LALCO-620' 
+        AND ie.name = 'Com - NB - lenovo - 0 - NXEFTS0021030D6CE2N00 - LALCO-620'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - NXGVYST00R051179657600 - LALCO-584', 
+        ie.name = 'Com - NB - acer - 0 - NXGVYST00R051179657600 - LALCO-584',
+        ie.sn_id = 'NXGVYST00R051179657600'
+WHERE ie.user_name = 'LALCO-584' 
+        AND ie.name = 'Com - NB - acer - 0 - NXGVYT00R051179657600 - LALCO-584'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB -  -  -  - LALCO-373', 
+        ie.name = 'Com - NB - acer - 0 - JBN0GR09R981486 - LALCO-373',
+        ie.sn_id = 'JBN0GR09R981486'
+WHERE ie.user_name = 'LALCO-373' 
+        AND ie.name = 'Com - NB -  -  -  - LALCO-373'
+;
+
+UPDATE tabIT_computers ic
+LEFT JOIN tabIT_Equipment ie ON (ic.it_equipment = ie.name)
+SET ic.it_equipment = 'Com - NB - acer - 0 - ບໍມີີຂໍ້ມູນ SNID - LALCO-575', 
+        ie.name = 'Com - NB - acer - 0 - ບໍມີີຂໍ້ມູນ SNID - LALCO-575',
+        ie.sn_id = 'ບໍມີີຂໍ້ມູນ SNID'
+WHERE ie.user_name = 'LALCO-575' 
+        AND ie.name = 'Com - NB - acer - 0 - NXGVYST00R05117AC67600 - LALCO-575'
+;
+
+
+
+
+
+
+
+
+
 
 
 

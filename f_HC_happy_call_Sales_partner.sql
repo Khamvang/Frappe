@@ -3,7 +3,7 @@
 -- ______________________________________________________ Satrt Do this every month ______________________________________________________
 
 -- 1) create table temp_sme_Sales_partner
-DROP TABLE IF EXISTS `temp_sme_Sales_partner`;
+-- DROP TABLE IF EXISTS `temp_sme_Sales_partner`;
 
 
 CREATE TABLE `temp_sme_Sales_partner` (
@@ -31,7 +31,7 @@ CREATE TABLE `temp_sme_Sales_partner` (
 	KEY `odx_creation` (`creation`),
 	KEY `odx_broker_tel` (`broker_tel`),
 	KEY `idx_refer_id` (`refer_id`),
-	KEY `idx_contract_type` (`idx_contract_type`)
+	KEY `idx_contract_type` (`contract_type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 
@@ -39,20 +39,26 @@ CREATE TABLE `temp_sme_Sales_partner` (
 
 -- Run on server: lalco 18.140.117.112
 -- 2) export from LMS to Frappe on table name temp_sme_Sales_partner as TRUNCATE
-select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null `modified`, 'Administrator' `owner`, null `current_staff`, 
+SELECT
+	c.contract_no, 
+	from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') AS `creation`, 
+	null AS `modified`, 
+	'Administrator' AS `owner`, 
+	null AS `current_staff`, 
 	upper(case when u2.nickname = 'Mee' then concat(u.staff_no, ' - ', u.nickname) 
 		when u2.staff_no is not null then concat(u2.staff_no, ' - ', u2.nickname) else concat(u.staff_no, ' - ', u.nickname)
-	end ) `owner_staff`, 
+	end ) AS `owner_staff`, 
 	'SP - ນາຍໜ້າໃນອາດີດ' `broker_type`, 
-	convert(cast(convert(concat(b.first_name , " ",b.last_name) using latin1) as binary) using utf8) `broker_name`, 
+	convert(cast(convert(concat(b.first_name , " ",b.last_name) using latin1) as binary) using utf8) AS `broker_name`, 
 	case when left (right (REPLACE ( b.contact_no, ' ', '') ,8),1) = '0' then CONCAT('903',right (REPLACE ( b.contact_no, ' ', '') ,8))
 			when length (REPLACE ( b.contact_no, ' ', '')) = 7 then CONCAT('9030',REPLACE ( b.contact_no, ' ', ''))
 			else CONCAT('9020', right(REPLACE ( b.contact_no, ' ', '') , 8))
-	end `broker_tel`,
-	concat(left(pr.province_name, locate('-', pr.province_name)-2), ' - ', ci.city_name) `address_province_and_city`, 
-	convert(cast(convert(vi.village_name_lao using latin1) as binary) using utf8) `address_village`, null `broker_workplace`, 
-	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, 
-	c.contract_no, 
+	end AS `broker_tel`,
+	concat(left(pr.province_name, locate('-', pr.province_name)-2), ' - ', ci.city_name) AS `address_province_and_city`, 
+	convert(cast(convert(vi.village_name_lao using latin1) as binary) using utf8) AS `address_village`, 
+	null `broker_workplace`, 
+	convert(cast(convert(concat(bt.code , " - ",bt.type) using latin1) as binary) using utf8) `business_type`, 
+	'Yes - ເຄີຍແນະນຳມາແລ້ວ' `ever_introduced`, 
 	'' as `rank`, 
 	b.id `refer_id`, 
 	p.broker_commission 
@@ -60,7 +66,8 @@ select from_unixtime(c.disbursed_datetime, '%Y-%m-%d %H:%m:%s') `creation`, null
 				p.trading_currency when 'USD' then 1
 				when 'LAK' then br.usd2lak
 				when 'THB' then br.usd2thb
-			end) AS `broker_commission_USD` ,
+			end) 
+			AS `broker_commission_USD` ,
 	'LMS_Broker' `refer_type`,
 	CASE
 		WHEN p.contract_type = 1 THEN 'SME Car'
@@ -192,112 +199,14 @@ WHERE sme2.id IS NOT NULL AND sme2.retirement_date IS NULL
 
 
 
--- 7.2 update , this will take sometime to complete the query
-update tabsme_Sales_partner sp
-left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
-left join tabsme_Employees te on (te.staff_no = SUBSTRING_INDEX(sp.current_staff, ' -', 1) )
-left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-left join sme_org sme2 on (SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) = sme2.staff_no)
-left join tabsme_Employees te2 on (te2.staff_no = SUBSTRING_INDEX(tmspd.owner_staff, ' -', 1) )
-left join tabsme_Employees te3 on (te3.email = sp.modified_by)
-left join sme_org sme3 on (sme3.staff_no = te3.staff_no)
-set sp.current_staff = 
-	case when sme2.staff_no is not null then te2.name -- Last person who acquired customer from the broker
-		when sme.staff_no is not null then te.name -- Current person in charge on Frappe system
-		-- when sme3.staff_no is not null then te3.name -- Last user who modified the sales partner on Frappe
-		else sp.current_staff
-	end,
-	sp.owner_staff = tmspd.owner_staff
-where sp.refer_type = 'LMS_Broker'
+
+-- __________________________________________ Update reset  __________________________________________
+UPDATE tabsme_Sales_partner sp
+SET sp.current_staff = sp.owner_staff
+WHERE sp.refer_type = 'LMS_Broker'
+	AND SUBSTRING_INDEX(sp.current_staff, ' -', 1) != SUBSTRING_INDEX(sp.owner_staff, ' -', 1)
 ;
 
-
-
-
--- 7.3 Update the case which is not active sales to assign again
--- Check how many cases
-SELECT sp.name, 
-	sp.current_staff AS `latest_staff`, 
-	ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num,
-	tmspd.creation,
-	TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) AS `latest_month`,
-	CASE 
-		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3 THEN 'UL'
-		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 12 THEN 'TL'
-		WHEN TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12 THEN 'Sales+CC'
-		ELSE NULL
-	END AS `title_to_assign`
-from tabsme_Sales_partner sp 
-left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
-left join temp_sme_Sales_partner tmspd on tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-where sp.refer_type = 'LMS_Broker' and sme.id is null;
-
-
-/*
-This query does the following:
-
-1. Calculates the total cases and eligible staff.
-2. Prepares temporary tables for staff and cases, assigning row numbers for fair distribution.
-3. Distributes cases fairly to staff using a round-robin approach with adjustments for extra cases.
-4. Updates the current_staff field in tabsme_Sales_partner with the assigned staff.
-5. Cleans up temporary tables.
-*/
-
-/*
--- Assign to UL for all the cases 
--- Step 1: Calculate total rows and fair distribution
-SET @total_rows = (
-		SELECT COUNT(*)
-		FROM tabsme_Sales_partner sp
-		LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
-		WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
-);
-
-SET @num_staff = (
-		SELECT COUNT(*)
-		FROM sme_org sme
-		LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
-		WHERE sme.rank <= 49 
-			AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
-);
-
-SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
-SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
-
--- Step 2: Create a temporary table with row numbers for staff
-CREATE TEMPORARY TABLE tmp_staff AS
-SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
-FROM sme_org sme
-LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
-WHERE sme.rank <= 49 
-	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
-
--- Step 3: Create a temporary table with row numbers for cases
-CREATE TEMPORARY TABLE tmp_cases AS
-SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
-FROM tabsme_Sales_partner sp
-LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
-WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL;
-
--- Step 4: Assign cases to staff fairly
-UPDATE tabsme_Sales_partner sp
-JOIN (
-		SELECT c.case_name, 
-					 CASE
-							 WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
-									 MOD(c.row_num - 1, @num_staff) + 1
-							 ELSE
-									 MOD(c.row_num - 1, @num_staff) + 1
-					 END AS staff_row
-		FROM tmp_cases c
-) case_assign ON sp.name = case_assign.case_name
-JOIN tmp_staff s ON case_assign.staff_row = s.row_num
-SET sp.current_staff = s.staff_name;
-
--- Step 5: Clean up temporary tables
-DROP TEMPORARY TABLE tmp_staff;
-DROP TEMPORARY TABLE tmp_cases;
-*/
 
 
 -- __________________________________________ UL  __________________________________________
@@ -307,8 +216,9 @@ SET @total_rows = (
 		SELECT COUNT(*)
 		FROM tabsme_Sales_partner sp
 	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
-	 	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-	 	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+	 	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+		WHERE sp.refer_type = 'LMS_Broker' 
+			AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
 			AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3
 );
 
@@ -333,12 +243,13 @@ WHERE sme.rank <= 49
 
 -- Step 3: Create a temporary table with row numbers for cases
 CREATE TEMPORARY TABLE tmp_cases AS
-SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
-FROM tabsme_Sales_partner sp
-LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
-LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
-	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3;
+	SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+	FROM tabsme_Sales_partner sp
+	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
+	WHERE sp.refer_type = 'LMS_Broker' 
+		AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
+		AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) <= 3;
 
 
 
@@ -370,7 +281,8 @@ SET @total_rows = (
 		FROM tabsme_Sales_partner sp
 	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
 	 	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-	 	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+		WHERE sp.refer_type = 'LMS_Broker' 
+			AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
 			AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) BETWEEN 4 AND 12
 );
 
@@ -399,7 +311,8 @@ SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
 FROM tabsme_Sales_partner sp
 LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
 LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+WHERE sp.refer_type = 'LMS_Broker' 
+	AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
 	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) BETWEEN 4 AND 12;
 
 
@@ -432,7 +345,8 @@ SET @total_rows = (
 		FROM tabsme_Sales_partner sp
 	 	LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
 	 	LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-	 	WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
+	 	WHERE sp.refer_type = 'LMS_Broker' 
+	 		AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
 			AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12
 );
 
@@ -447,13 +361,16 @@ SET @num_staff = (
 SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
 SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
 
+
 -- Step 2: Create a temporary table with row numbers for staff
 CREATE TEMPORARY TABLE tmp_staff AS
 SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
 FROM sme_org sme
 LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
 WHERE sme.rank >= 70
-	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+;
+
 
 -- Step 3: Create a temporary table with row numbers for cases
 CREATE TEMPORARY TABLE tmp_cases AS
@@ -461,9 +378,10 @@ SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
 FROM tabsme_Sales_partner sp
 LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
 LEFT JOIN temp_sme_Sales_partner tmspd ON tmspd.contract_no = (select contract_no	from temp_sme_Sales_partner where refer_id = sp.refer_id order by creation desc limit 1 )
-WHERE sp.refer_type = 'LMS_Broker' AND sme.id IS NULL
-	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12 ;
-
+WHERE sp.refer_type = 'LMS_Broker' 
+	AND (sme.id IS NULL OR sme.unit IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC') )
+	AND TIMESTAMPDIFF(MONTH, tmspd.creation, CURRENT_DATE()) > 12 
+;
 
 
 -- Step 4: Assign cases to staff fairly
@@ -486,7 +404,75 @@ DROP TEMPORARY TABLE tmp_staff;
 DROP TEMPORARY TABLE tmp_cases;
 
 
--- ___________________________________ End ___________________________________
+
+
+-- ______________________________________________________ Resigned_Employees ______________________________________________________
+-- Assign to all staff
+-- Step 1: Calculate total rows and fair distribution
+SET @total_rows = (
+		SELECT COUNT(*)
+		FROM tabsme_Sales_partner sp
+		LEFT JOIN tabsme_Employees emp ON (emp.staff_no = sp.refer_id)
+		LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+		WHERE sp.refer_type = 'staff' AND emp.staff_status = 'Resigned'
+			AND sme.id IS NULL
+);
+
+SET @num_staff = (
+		SELECT COUNT(*)
+		FROM sme_org sme
+		LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+		WHERE sme.retirement_date IS NULL 
+			AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC')
+);
+
+SET @base_cases_per_staff = FLOOR(@total_rows / @num_staff); -- Minimum cases each staff gets
+SET @extra_cases = MOD(@total_rows, @num_staff); -- Remaining cases to distribute
+
+
+-- Step 2: Create a temporary table with row numbers for staff
+CREATE TEMPORARY TABLE tmp_staff AS
+SELECT te.name AS staff_name, ROW_NUMBER() OVER (ORDER BY sme.id) AS row_num
+FROM sme_org sme
+LEFT JOIN tabsme_Employees te ON te.staff_no = sme.staff_no
+WHERE sme.retirement_date IS NULL 
+	AND sme.unit NOT IN ('Collection CC', 'Sales Promotion CC', 'Management', 'Internal', 'LC');
+
+
+-- Step 3: Create a temporary table with row numbers for cases
+CREATE TEMPORARY TABLE tmp_cases AS
+SELECT sp.name AS case_name, ROW_NUMBER() OVER (ORDER BY sp.name) AS row_num
+FROM tabsme_Sales_partner sp
+LEFT JOIN tabsme_Employees emp ON (emp.staff_no = sp.refer_id)
+LEFT JOIN sme_org sme ON SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no
+WHERE sp.refer_type = 'staff' AND emp.staff_status = 'Resigned'
+	AND sme.id IS NULL
+;
+
+
+-- Step 4: Assign cases to staff fairly
+UPDATE tabsme_Sales_partner sp
+JOIN (
+		SELECT c.case_name, 
+					 CASE
+							 WHEN MOD(c.row_num - 1, @num_staff) + 1 <= @extra_cases THEN 
+									 MOD(c.row_num - 1, @num_staff) + 1
+							 ELSE
+									 MOD(c.row_num - 1, @num_staff) + 1
+					 END AS staff_row
+		FROM tmp_cases c
+) case_assign ON sp.name = case_assign.case_name
+JOIN tmp_staff s ON case_assign.staff_row = s.row_num
+SET sp.current_staff = s.staff_name;
+
+-- Step 5: Clean up temporary tables
+DROP TEMPORARY TABLE tmp_staff;
+DROP TEMPORARY TABLE tmp_cases;
+
+
+
+
+
 
 
 
@@ -552,20 +538,12 @@ WHERE sp.owner_staff REGEXP '^[0-9]+$' ;
 
 
 
--- ______________________________________________________ End Do this every month ______________________________________________________
 
 
 
 
 
-
-
-
-
-
-
-
-
+-- ______________________________________________________ Export ______________________________________________________
 -- SP export to google sheet https://docs.google.com/spreadsheets/d/17coswPI_uF-E3aEXbqMpQD_en1FDKUFX95zXluT3dhs/edit#gid=564749378
 -- SME_SP
 select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
@@ -588,51 +566,159 @@ end `introduce status`,
 from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
 left join temp_sme_pbx_SP ts on (ts.id = sp.name)
 LEFT JOIN (SELECT broker_tel, 
-				SUM(CASE 
-					WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
-					AND (DATE(disbursed_date) < CURRENT_DATE() OR disbursed_date IS NULL) 
-					THEN 1 ELSE 0 
-				END) AS `shr_prospect`,
-				SUM(CASE 
-					WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
-					AND DATE(disbursed_date) >= CURRENT_DATE() 
-					THEN 1 ELSE 0 
-				END) AS `shr_will_contract`,
-				SUM(CASE 
-					WHEN COALESCE(contract_status, '') IN ('Active', 'Closed', 'Refinance') 
-					THEN 1 ELSE 0 
-				END) AS `shr_contracted`
-			FROM sme_hc_result 
-			WHERE broker_tel IS NOT NULL 
-			GROUP BY broker_tel) shr ON (sp.broker_tel = shr.broker_tel)
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND (DATE(disbursed_date) < CURRENT_DATE() OR disbursed_date IS NULL) 
+                    THEN 1 ELSE 0 
+                END) AS `shr_prospect`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND DATE(disbursed_date) >= CURRENT_DATE() 
+                    THEN 1 ELSE 0 
+                END) AS `shr_will_contract`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') IN ('Active', 'Closed', 'Refinance') 
+                    THEN 1 ELSE 0 
+                END) AS `shr_contracted`
+            FROM sme_hc_result 
+            WHERE broker_tel IS NOT NULL 
+            GROUP BY broker_tel) shr ON (sp.broker_tel = shr.broker_tel)
 where sp.refer_type = 'LMS_Broker' 
 order by sme.id ;
 
 
 
-
--- XYZ export to google sheet https://docs.google.com/spreadsheets/d/19IsoiG6JyB1CNodTyDLvLeb7HUM3CYnqHOs7XhjNErE/edit#gid=990597291
+-- SME_5way
 select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
 	sp.broker_type, sp.broker_name, sp.address_province_and_city, sp.`rank`, sp.date_for_introduction, sp.customer_name, concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
 	case when sp.owner_staff = sp.current_staff then '1' else 0 end `owner_takeover`,
-	sp.broker_tel, sp.currency, sp.amount,
-	ts.pbx_status `LCC check`
+	sp.broker_tel, sp.credit, sp.rank_of_credit, sp.credit_remark, ts.pbx_status `LCC check`, 
+	sp.relationship,
+	sp.business_type, 
+	(case when sp.currency = 'USD' then 1 when sp.currency = 'THB' then 1/35.10 when sp.currency = 'LAK' then 1/23480.00 end) * sp.amount `USD_amount`,
+	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('X') then 'Contracted'
+	when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'SABC' else 'no' 
+end `introduce status`,
+	sp.send_wa, sp.wa_date, 
+	case when sp.send_wa != '' and sp.wa_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'Sent' else 'x' end `wa_send_status`,
+	case when sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01')  then 'called' else 'x' end `call_ status`,
+	timestampdiff(month,creation, now()) as `month_introduce`,
+	shr.shr_prospect AS `shr_prospect`,
+	shr.shr_will_contract AS `shr_will_contract`, 
+	shr.shr_contracted AS `shr_contracted`
 from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-inner join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.refer_type = 'tabSME_BO_and_Plan' and sme.`unit_no` is not null -- if resigned staff no need
+left join temp_sme_pbx_SP ts on (ts.id = sp.name)
+LEFT JOIN (SELECT broker_tel, 
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND (DATE(disbursed_date) < CURRENT_DATE() OR disbursed_date IS NULL) 
+                    THEN 1 ELSE 0 
+                END) AS `shr_prospect`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND DATE(disbursed_date) >= CURRENT_DATE() 
+                    THEN 1 ELSE 0 
+                END) AS `shr_will_contract`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') IN ('Active', 'Closed', 'Refinance') 
+                    THEN 1 ELSE 0 
+                END) AS `shr_contracted`
+            FROM sme_hc_result 
+            WHERE broker_tel IS NOT NULL 
+            GROUP BY broker_tel) shr ON (sp.broker_tel = shr.broker_tel)
+where sp.refer_type = '5way' and sme.`unit_no` is not null -- if resigned staff no need
+      and sp.`rank` not in ('Block - ຕ້ອງການໃຫ້ບຼ໋ອກ' , 'Not interest - ບໍ່ສົນໃຈ ເປັນນາຍໜ້າ')
+      AND sp.owner_staff = sp.current_staff
 order by sme.id ;
 
 
--- 5way export to google sheet https://docs.google.com/spreadsheets/d/15wAmhxB0gDAHDwa6WSmY-PqPvAm6eOoIP5YKp48wTi4/edit#gid=722440269
+
+-- SME_Resigned_Employees
 select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
 	sp.broker_type, sp.broker_name, sp.address_province_and_city, sp.`rank`, sp.date_for_introduction, sp.customer_name, concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
 	case when sp.owner_staff = sp.current_staff then '1' else 0 end `owner_takeover`,
-	sp.broker_tel, sp.currency, sp.amount,
-	ts.pbx_status `LCC check`,
-	sp.business_type
+	sp.broker_tel, sp.credit, sp.rank_of_credit, sp.credit_remark, ts.pbx_status `LCC check`, 
+	case when sp.modified < date(now()) then '-' else left(sp.`rank`, locate(' ',sp.`rank`)-1) end `rank of call today`,
+	sp.business_type, 
+	(case when sp.currency = 'USD' then 1 when sp.currency = 'THB' then 1/35.10 when sp.currency = 'LAK' then 1/23480.00 end) * sp.amount `USD_amount`,
+	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('X') then 'Contracted'
+	when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'SABC' else 'no' 
+end `introduce status`,
+	sp.send_wa, sp.wa_date, 
+	case when sp.send_wa != '' and sp.wa_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'Sent' else 'x' end `wa_send_status`,
+	case when sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'called' else 'x' end `call_ status`,
+	timestampdiff(month,sp.creation, now()) as `month_introduce`,
+	shr.shr_prospect AS `shr_prospect`,
+	shr.shr_will_contract AS `shr_will_contract`, 
+	shr.shr_contracted AS `shr_contracted`
+from tabsme_Sales_partner sp 
+LEFT JOIN tabsme_Employees emp ON (emp.staff_no = sp.refer_id)
+left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+left join temp_sme_pbx_SP ts on (ts.id = sp.name)
+LEFT JOIN (SELECT broker_tel, 
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND (DATE(disbursed_date) < CURRENT_DATE() OR disbursed_date IS NULL) 
+                    THEN 1 ELSE 0 
+                END) AS `shr_prospect`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND DATE(disbursed_date) >= CURRENT_DATE() 
+                    THEN 1 ELSE 0 
+                END) AS `shr_will_contract`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') IN ('Active', 'Closed', 'Refinance') 
+                    THEN 1 ELSE 0 
+                END) AS `shr_contracted`
+            FROM sme_hc_result 
+            WHERE broker_tel IS NOT NULL 
+            GROUP BY broker_tel) shr ON (sp.broker_tel = shr.broker_tel)
+WHERE sp.refer_type = 'staff' AND emp.staff_status = 'Resigned'
+order by sme.id ;
+
+
+
+-- SME_XYZ
+select sp.name `id`, date_format(sp.modified, '%Y-%m-%d') `date_update`, sme.`dept`, sme.`sec_branch`, sme.`unit_no`, sme.unit, sme.staff_no `staff_no` , sme.staff_name, sp.owner_staff 'owner', 
+	sp.broker_type, sp.broker_name, sp.address_province_and_city, sp.`rank`, sp.date_for_introduction, sp.customer_name, concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
+	case when sp.owner_staff = sp.current_staff then '1' else 0 end `owner_takeover`,
+	sp.broker_tel, sp.credit, sp.rank_of_credit, sp.credit_remark, ts.pbx_status `LCC check`, 
+	sp.relationship,
+	sp.business_type, 
+	(case when sp.currency = 'USD' then 1 when sp.currency = 'THB' then 1/35.10 when sp.currency = 'LAK' then 1/23480.00 end) * sp.amount `USD_amount`,
+	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('X') then 'Contracted'
+	when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'SABC' else 'no' 
+end `introduce status`,
+	sp.send_wa, sp.wa_date, 
+	case when sp.send_wa != '' and sp.wa_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'Sent' else 'x' end `wa_send_status`,
+	case when sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'called' else 'x' end `call_ status`,
+	timestampdiff(month,creation, now()) as `month_introduce`,
+	shr.shr_prospect AS `shr_prospect`,
+	shr.shr_will_contract AS `shr_will_contract`, 
+	shr.shr_contracted AS `shr_contracted`
 from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
-inner join temp_sme_pbx_SP ts on (ts.id = sp.name)
-where sp.broker_type = '5way - 5ສາຍພົວພັນ' and sp.owner_staff = sp.current_staff and sme.`unit_no` is not null -- if resigned staff no need
+left join temp_sme_pbx_SP ts on (ts.id = sp.name)
+LEFT JOIN (SELECT broker_tel, 
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND (DATE(disbursed_date) < CURRENT_DATE() OR disbursed_date IS NULL) 
+                    THEN 1 ELSE 0 
+                END) AS `shr_prospect`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') NOT IN ('Active', 'Closed', 'Refinance') 
+                    AND DATE(disbursed_date) >= CURRENT_DATE() 
+                    THEN 1 ELSE 0 
+                END) AS `shr_will_contract`,
+                SUM(CASE 
+                    WHEN COALESCE(contract_status, '') IN ('Active', 'Closed', 'Refinance') 
+                    THEN 1 ELSE 0 
+                END) AS `shr_contracted`
+            FROM sme_hc_result 
+            WHERE broker_tel IS NOT NULL 
+            GROUP BY broker_tel) shr ON (sp.broker_tel = shr.broker_tel)
+where sp.refer_type = 'tabSME_BO_and_Plan' and sme.`unit_no` is not null -- if resigned staff no need --
+	AND sp.current_staff = sp.owner_staff
+      /* and sp.`rank` != 'Block - ຕ້ອງການໃຫ້ບຼ໋ອກ' and sp.`rank` != 'Not interest - ບໍ່ສົນໃຈ ເປັນນາຍໜ້າ' */
 order by sme.id ;
 
 
@@ -1353,7 +1439,7 @@ from tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 WHERE sme.id is not null
 -- 	AND sp.name = 50
--- AND sme.staff_no IN (4440, 4509, 1925, 4720, 1709, 4027, 2672, 4704, 4177, 3699, 168, 4141, 430, 843, 3542, 590, 1291, 3373, 544, 2565, 558, 1459, 3196, 2984, 2845, 3637, 387, 1730, 1319, 3767, 2359, 1817, 2543, 2081, 1395, 2291, 1590, 2424, 1513, 1338, 1227, 2855, 1868, 1054)
+-- AND sme.staff_no IN ()
 	AND sp.wa_date is null
 	AND sp.refer_type = 'tabSME_BO_and_Plan'
 
@@ -1362,9 +1448,93 @@ UPDATE tabsme_Sales_partner sp
 left join sme_org sme on (SUBSTRING_INDEX(sp.current_staff, ' -', 1) = sme.staff_no)
 SET sp.modified = NOW(), sp.wa_date = CURRENT_DATE() , sp.send_wa = 'Yes-ສົ່ງໄດ້'
 WHERE sme.id is not null
--- AND sme.staff_no IN (4440, 4509, 1925, 4720, 1709, 4027, 2672, 4704, 4177, 3699, 168, 4141, 430, 843, 3542, 590, 1291, 3373, 544, 2565, 558, 1459, 3196, 2984, 2845, 3637, 387, 1730, 1319, 3767, 2359, 1817, 2543, 2081, 1395, 2291, 1590, 2424, 1513, 1338, 1227, 2855, 1868, 1054)
+-- AND sme.staff_no IN ()
 	AND sp.wa_date < '2025-03-01'
 	AND sp.refer_type = 'tabSME_BO_and_Plan'
+
+
+
+
+
+
+-- SME_5way
+SELECT
+	sp.name AS `id`, 
+	date_format(sp.modified, '%Y-%m-%d') AS `date_update`, 
+	sme.`dept`, 
+	sme.`sec_branch`, 
+	sme.`unit_no`, 
+	sme.unit, 
+	sme.staff_no AS `staff_no` , 
+	sme.staff_name, 
+	sp.owner_staff AS 'owner', 
+	sp.broker_type, 
+	sp.broker_name, 
+	sp.address_province_and_city, 
+	sp.`rank`, 
+	sp.date_for_introduction, 
+	sp.customer_name, 
+	concat('http://13.250.153.252:8000/app/sme_sales_partner/', sp.name) `Edit`,
+	case 
+		when sp.owner_staff = sp.current_staff then '1' 
+		else 0 
+	end `owner_takeover`,
+	sp.broker_tel, 
+	sp.credit, 
+	sp.rank_of_credit, 
+	sp.credit_remark, 
+	ts.pbx_status `LCC check`, 
+	sp.relationship,
+	CASE
+		WHEN sp.business_type = '1 - Bank/ທະນາຄານ' THEN 'Finance'
+		WHEN sp.business_type = '2 - Insurance/ບໍລິສັດ ປະກັນໄພ' THEN 'Insurance'
+		WHEN sp.business_type = '14 - Finance Institute/ສະຖາບັນການເງິນ' THEN 'Finance'
+		WHEN sp.business_type = '15 - Leasing/ບໍລິສັດ ສິນເຊື່ອ' THEN 'Finance'
+		WHEN sp.business_type = '43 - Accounting Audit/ບໍລິການກວດສອບບັນຊີ' THEN 'Finance'
+		WHEN sp.business_type = '45 - Government officer/ພະນັກງານລັດຖະກອນ' THEN 'Government'
+		WHEN sp.business_type = '48 - Car-Bike shop/ຮ້ານລົດໃຫຍ່-ລົດຈັກ' THEN 'Car related'
+		WHEN sp.business_type = '51 - Car Repair shop / ຮ້ານສ້ອມແປງລົດ' THEN 'Car related'
+		WHEN sp.business_type = '52 - Wash car / ຮ້ານລ້າງລົດ' THEN 'Car related'
+		WHEN sp.business_type = '53 - Car parts shop / ຮ້ານຂາຍອາໄຫຼ່ລົດຍົນ' THEN 'Car related'
+	END AS `business_type_group`,
+	sp.business_type, 
+	(case 
+		when sp.currency = 'USD' then 1 
+		when sp.currency = 'THB' then 1/35.10 
+		when sp.currency = 'LAK' then 1/23480.00 end
+	) * sp.amount AS `USD_amount`,
+	case when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('X') then 'Contracted'
+		when left(sp.`rank`, locate(' -', sp.`rank`)-1) in ('S', 'A', 'B', 'C') then 'SABC' else 'no' 
+	end AS `introduce status`,
+	sp.send_wa, sp.wa_date, 
+	case 
+		when sp.send_wa != '' and sp.wa_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') then 'Sent' 
+		else 'x' 
+	end AS `wa_send_status`,
+	case 
+		when sp.modified >= DATE_FORMAT(CURDATE(), '%Y-%m-01')  then 'called' 
+		else 'x' 
+	end `call_ status`,
+	timestampdiff(month, sp.creation, now()) as `month_introduce`,
+	te.staff_status
+from tabsme_Sales_partner sp left join sme_org sme on (case when locate(' ', sp.current_staff) = 0 then sp.current_staff else left(sp.current_staff, locate(' ', sp.current_staff)-1) end = sme.staff_no)
+left join temp_sme_pbx_SP ts on (ts.id = sp.name)
+LEFT JOIN tabsme_Employees te ON (sp.owner_staff = te.name)
+where 
+	sp.refer_type = '5way'
+	AND sp.business_type IN ('1 - Bank/ທະນາຄານ', '2 - Insurance/ບໍລິສັດ ປະກັນໄພ', '14 - Finance Institute/ສະຖາບັນການເງິນ', '15 - Leasing/ບໍລິສັດ ສິນເຊື່ອ', '43 - Accounting Audit/ບໍລິການກວດສອບບັນຊີ', '45 - Government officer/ພະນັກງານລັດຖະກອນ', '48 - Car-Bike shop/ຮ້ານລົດໃຫຍ່-ລົດຈັກ', '51 - Car Repair shop / ຮ້ານສ້ອມແປງລົດ', '52 - Wash car / ຮ້ານລ້າງລົດ', '53 - Car parts shop / ຮ້ານຂາຍອາໄຫຼ່ລົດຍົນ'
+)
+order by sme.id ;
+
+
+
+
+
+
+
+
+
+
 
 
 

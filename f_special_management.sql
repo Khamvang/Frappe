@@ -1146,7 +1146,7 @@ order by sme.id asc;
 
 
 
--- 4. Dormant for Sales
+-- 4. Dormant for Sales -- update 2025-05-02
 DELETE FROM temp_sme_pbx_BO_special_management WHERE `management_type` = 'Dormant-over_$10,000-Sales';
 
 INSERT INTO temp_sme_pbx_BO_special_management
@@ -1156,7 +1156,7 @@ SELECT
 	apl.customer_tel, 
 	NULL AS `pbx_status`, 
 	NULL AS `date`, 
-	NULL AS `current_staff`, 
+	apl.staff_no AS `current_staff`, 
 	CASE 
 		WHEN apl.rank_update in ('S', 'A', 'B', 'C') then apl.rank_update 
 		ELSE apl.rank1 
@@ -1350,7 +1350,7 @@ WHERE
 -- 8. SABC 3 months Cancelled
 SELECT DISTINCT management_type FROM temp_sme_pbx_BO_special_management
 
-DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC 3 months Cancelled';
+DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Cancelled';
 
 INSERT INTO temp_sme_pbx_BO_special_management
 SELECT 
@@ -1368,7 +1368,7 @@ SELECT
 		ELSE timestampdiff(month, bp.creation, date(now())) 
 	END `month_type`,
 	bp.`usd_loan_amount`,
-	'SABC 3 months Cancelled' as `management_type`,
+	'SABC Cancelled' as `management_type`,
 	NULL AS `datetime_create`
 FROM
     tabSME_BO_and_Plan bp
@@ -1383,7 +1383,7 @@ WHERE
     (bp.rank1 IN ('S','A','B','C') OR bp.rank_update IN ('S','A','B','C'))
     AND bp.contract_status = 'Cancelled'
     AND bp.`type` IN ('New', 'Dor', 'Inc')
-    AND bp.creation BETWEEN '2025-01-01' AND '2025-03-31'
+    AND bp.creation BETWEEN '2025-01-01' AND '2025-04-31'
 ORDER BY
     sme.id ASC
 ;
@@ -1392,7 +1392,7 @@ ORDER BY
 
 
 
--- SABC 3 months Cancelled Over 5,000$
+-- SABC 3 months Cancelled Over 10,000$
 select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
 	bp.modified as `Timestamp`,
 	bp.name as `id`, 
@@ -1423,9 +1423,12 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	null as `is_own`,
 	bp.own_salesperson
 from tabSME_BO_and_Plan bp 
-inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC 3 months Cancelled' and tspbsm.usd_loan_amount >= 10000 )
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC Cancelled' and tspbsm.usd_loan_amount >= 10000 )
 left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
 order by sme.id asc;
+
+
+
 
 
 
@@ -1472,7 +1475,7 @@ ORDER BY
 
 SELECT * FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC 1year Over$10,000' ;
 
-
+-- https://docs.google.com/spreadsheets/d/16m6RV7YQLyWH952k3NAquZ2k4XRxhQAjMqBUeY_t2Jk/edit?gid=1383581194#gid=1383581194
 -- SABC 1year Over$10,000 for UL
 select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
 	bp.modified as `Timestamp`,
@@ -1492,10 +1495,22 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
 	is_sales_partner as `SP_rank`,
 	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
-	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
-	case when bp.modified >= date_format(curdate(), '%Y-%m-22')  then 'called' else 'x' end as `call_ status`,
-	bp.visit_or_not ,
+	case when bp.rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= curdate()  then 'called' else 'x' end as `call_ status`,
+	CASE 
+		WHEN (SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'Yes' OR SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'WA')
+			AND bp.visit_date IS NOT NULL AND bp.visit_date != '' AND bp.visit_date <= CURDATE()
+		THEN 'Yes'
+		ELSE 'No'
+	END AS `visit_status`,
 	bp.ringi_status ,
+	CASE 
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND spdr.disbursement_date_pay_date IS NULL THEN 'New'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date > spdr.disbursement_date_pay_date THEN 'Postpone'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date < spdr.disbursement_date_pay_date THEN 'Bargain faster'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date = spdr.disbursement_date_pay_date THEN 'Same'
+		ELSE 'No'
+	END AS `disbursement_status`,
 	bp.disbursement_date_pay_date ,
 	bp.credit,
 	bp.rank_of_credit,
@@ -1506,6 +1521,8 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 from tabSME_BO_and_Plan bp 
 inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC 1year Over$10,000' )
 left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+LEFT JOIN sme_pre_daily_report spdr 
+	ON spdr.id = (SELECT id FROM sme_pre_daily_report WHERE bp_name = bp.name ORDER BY id DESC LIMIT 1 ) 
 order by sme.id asc;
 
 
@@ -1553,7 +1570,7 @@ ORDER BY
 
 SELECT * FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC 1year Over$5,000' ;
 
-
+-- https://docs.google.com/spreadsheets/d/1dMYyKu4q6cpPMdU2soSPKqPp15IhcclMZs6rApxqhuE/edit?gid=1587674914#gid=1587674914
 -- SABC 1year Over$5,000 for TL
 select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
 	bp.modified as `Timestamp`,
@@ -1573,10 +1590,22 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
 	is_sales_partner as `SP_rank`,
 	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
-	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
-	case when bp.modified >= date_format(curdate(), '%Y-%m-22')  then 'called' else 'x' end as `call_ status`,
-	bp.visit_or_not ,
+	case when bp.rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= curdate()  then 'called' else 'x' end as `call_ status`,
+	CASE 
+		WHEN (SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'Yes' OR SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'WA')
+			AND bp.visit_date IS NOT NULL AND bp.visit_date != '' AND bp.visit_date <= CURDATE()
+		THEN 'Yes'
+		ELSE 'No'
+	END AS `visit_status`,
 	bp.ringi_status ,
+	CASE 
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND spdr.disbursement_date_pay_date IS NULL THEN 'New'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date > spdr.disbursement_date_pay_date THEN 'Postpone'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date < spdr.disbursement_date_pay_date THEN 'Bargain faster'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date = spdr.disbursement_date_pay_date THEN 'Same'
+		ELSE 'No'
+	END AS `disbursement_status`,
 	bp.disbursement_date_pay_date ,
 	bp.credit,
 	bp.rank_of_credit,
@@ -1587,6 +1616,8 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 from tabSME_BO_and_Plan bp 
 inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC 1year Over$5,000' )
 left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+LEFT JOIN sme_pre_daily_report spdr 
+	ON spdr.id = (SELECT id FROM sme_pre_daily_report WHERE bp_name = bp.name ORDER BY id DESC LIMIT 1 ) 
 order by sme.id asc;
 
 
@@ -1672,10 +1703,104 @@ order by sme.id asc;
 
 
 
--- 4. SABC Over 1year Over$5,000 for CC
+-- 4. SABC Over 1year Over$10,000 for UL
 SELECT DISTINCT management_type FROM temp_sme_pbx_BO_special_management
 
-DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Over 1year Over Over$5,000';
+DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Over 1year Over$10,000';
+
+INSERT INTO temp_sme_pbx_BO_special_management
+SELECT 
+	NULL AS `id`,
+	bp.name as `bp_name`, 
+	bp.customer_tel, 
+	NULL AS `pbx_status`, 
+	NULL AS `date`, 
+	bp.staff_no AS `current_staff`, 
+	CASE 
+		WHEN bp.rank_update in ('S', 'A', 'B', 'C') then bp.rank_update 
+		ELSE bp.rank1 
+	END `type`, 
+	CASE WHEN timestampdiff(month, bp.creation, date(now())) > 36 then 36 
+		ELSE timestampdiff(month, bp.creation, date(now())) 
+	END `month_type`,
+	bp.`usd_loan_amount`,
+	'SABC Over 1year Over$10,000' as `management_type`,
+	NULL AS `datetime_create`
+FROM
+    tabSME_BO_and_Plan bp
+LEFT JOIN
+    sme_org sme ON (CASE
+        WHEN LOCATE(' ', bp.staff_no) = 0 THEN bp.staff_no
+        ELSE LEFT(bp.staff_no, LOCATE(' ', bp.staff_no) - 1)
+    END = sme.staff_no)
+LEFT JOIN
+    sme_org smec ON (REGEXP_REPLACE(bp.callcenter_of_sales, '[^[:digit:]]', '') = smec.staff_no)
+WHERE
+	bp.name IN (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type > 12)
+	AND bp.`usd_loan_amount` >= 10000
+ORDER BY
+    sme.id ASC
+;
+
+
+SELECT * FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Over 1year Over$10,000' ;
+
+
+-- SABC Over 1year Over $10,000 for UL
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	bp.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	TRIM(SUBSTRING_INDEX(bp.rank_update, ' ', 1)) AS `rank_update`, 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when bp.rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= curdate()  then 'called' else 'x' end as `call_ status`,
+	CASE 
+		WHEN (SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'Yes' OR SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'WA')
+			AND bp.visit_date IS NOT NULL AND bp.visit_date != '' AND bp.visit_date <= CURDATE()
+		THEN 'Yes'
+		ELSE 'No'
+	END AS `visit_status`,
+	bp.ringi_status ,
+	CASE 
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND spdr.disbursement_date_pay_date IS NULL THEN 'New'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date > spdr.disbursement_date_pay_date THEN 'Postpone'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date < spdr.disbursement_date_pay_date THEN 'Bargain faster'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date = spdr.disbursement_date_pay_date THEN 'Same'
+		ELSE 'No'
+	END AS `disbursement_status`,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	null as `is_own`,
+	bp.own_salesperson
+from tabSME_BO_and_Plan bp 
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC Over 1year Over$10,000' )
+left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+LEFT JOIN sme_pre_daily_report spdr 
+	ON spdr.id = (SELECT id FROM sme_pre_daily_report WHERE bp_name = bp.name ORDER BY id DESC LIMIT 1 ) 
+order by sme.id asc;
+
+
+
+-- 5. SABC Over 1year Over$5,000 for TL
+SELECT DISTINCT management_type FROM temp_sme_pbx_BO_special_management
+
+DELETE FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Over 1year Over$5,000';
 
 INSERT INTO temp_sme_pbx_BO_special_management
 SELECT 
@@ -1705,8 +1830,8 @@ LEFT JOIN
 LEFT JOIN
     sme_org smec ON (REGEXP_REPLACE(bp.callcenter_of_sales, '[^[:digit:]]', '') = smec.staff_no)
 WHERE
-	bp.name IN (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type > 12)
-	AND bp.`usd_loan_amount` >= 5000
+	bp.name IN (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C') and month_type <= 12)
+	AND bp.`usd_loan_amount` >= 5000 AND bp.`usd_loan_amount` < 10000
 ORDER BY
     sme.id ASC
 ;
@@ -1714,8 +1839,8 @@ ORDER BY
 
 SELECT * FROM temp_sme_pbx_BO_special_management WHERE management_type = 'SABC Over 1year Over$5,000' ;
 
-
--- SABC Over 1year Over $10,000 for CC
+-- https://docs.google.com/spreadsheets/d/1dMYyKu4q6cpPMdU2soSPKqPp15IhcclMZs6rApxqhuE/edit?gid=1587674914#gid=1587674914
+-- SABC Over 1year Over $5,000 for TL
 select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
 	bp.modified as `Timestamp`,
 	bp.name as `id`, 
@@ -1734,10 +1859,22 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
 	is_sales_partner as `SP_rank`,
 	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
-	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
-	case when bp.modified >= date_format(curdate(), '%Y-%m-22')  then 'called' else 'x' end as `call_ status`,
-	bp.visit_or_not ,
+	case when bp.rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= curdate()  then 'called' else 'x' end as `call_ status`,
+	CASE 
+		WHEN (SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'Yes' OR SUBSTRING_INDEX(bp.visit_or_not , ' - ', 1) = 'WA')
+			AND bp.visit_date IS NOT NULL AND bp.visit_date != '' AND bp.visit_date <= CURDATE()
+		THEN 'Yes'
+		ELSE 'No'
+	END AS `visit_status`,
 	bp.ringi_status ,
+	CASE 
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND spdr.disbursement_date_pay_date IS NULL THEN 'New'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date > spdr.disbursement_date_pay_date THEN 'Postpone'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date < spdr.disbursement_date_pay_date THEN 'Bargain faster'
+		WHEN bp.disbursement_date_pay_date >= CURDATE() AND bp.disbursement_date_pay_date = spdr.disbursement_date_pay_date THEN 'Same'
+		ELSE 'No'
+	END AS `disbursement_status`,
 	bp.disbursement_date_pay_date ,
 	bp.credit,
 	bp.rank_of_credit,
@@ -1748,6 +1885,8 @@ select date_format(bp.creation, '%Y-%m-%d') as `Date created`,
 from tabSME_BO_and_Plan bp 
 inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SABC Over 1year Over$5,000' )
 left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+LEFT JOIN sme_pre_daily_report spdr 
+	ON spdr.id = (SELECT id FROM sme_pre_daily_report WHERE bp_name = bp.name ORDER BY id DESC LIMIT 1 ) 
 order by sme.id asc;
 
 
@@ -1833,7 +1972,85 @@ order by sme.id asc;
 
 
 
+-- _________________________________ 2025-05-20 _________________________________
 
+-- 1. SAB for TL and above
+delete from temp_sme_pbx_BO_special_management where management_type = 'SAB for UL & TL';
+
+INSERT INTO temp_sme_pbx_BO_special_management
+SELECT 
+	NULL AS `id`,
+	bp.name as `bp_name`, 
+	bp.customer_tel, 
+	NULL AS `pbx_status`, 
+	NULL AS `date`, 
+	NULL AS `current_staff`, 
+	tb.`type`, 
+	CASE WHEN timestampdiff(month, bp.creation, date(now())) > 36 then 36 
+		ELSE timestampdiff(month, bp.creation, date(now())) 
+	END `month_type`,
+	bp.`usd_loan_amount`,
+	'SAB for UL & TL' as `management_type`,
+	NULL AS `datetime_create`
+from tabSME_BO_and_Plan bp 
+inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
+left join sme_org sme on (case when locate(' ', tb.current_staff) = 0 then tb.current_staff else left(tb.current_staff, locate(' ', tb.current_staff)-1) end = sme.staff_no)
+left join sme_org sme2 on (case when locate(' ', bp.own_salesperson) = 0 then bp.own_salesperson else left(bp.own_salesperson, locate(' ', bp.own_salesperson)-1) end = sme2.staff_no)
+where bp.name in (select id from temp_sme_pbx_BO where `type` in ('S', 'A', 'B') )
+	AND bp.contract_status != 'Contracted'
+;
+
+
+-- export to assign
+select 
+	tspbsm.* ,
+	CASE 
+		WHEN sme.affiliation = 'HO' THEN 'Head office'
+		WHEN sme.affiliation = 'BR' THEN sme.sec_branch 
+		ELSE 'Head office'
+	END AS `Sec_old`
+from tabSME_BO_and_Plan bp 
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SAB for UL & TL')
+LEFT JOIN sme_org sme ON (SUBSTRING_INDEX(bp.staff_no, ' ', 1) = sme.staff_no)
+order by sme.id asc;
+
+
+
+-- export SAB for UL & TL
+select date_format(bp.creation, '%Y-%m-%d') as `Date created`, 
+	bp.modified as `Timestamp`,
+	bp.name as `id`, 
+	sme.dept as `DEPT`, 
+	sme.sec_branch as `SECT`, 
+	sme.unit_no as `Unit_no`, 
+	sme.unit as `Unit`, 
+	sme.staff_no as `Staff No`, 
+	sme.staff_name as `Staff Name`, 
+	tspbsm.`type`, 
+	bp.usd_loan_amount, 
+	bp.normal_bullet ,
+	bp.customer_name ,
+	concat('http://13.250.153.252:8000/app/sme_bo_and_plan/', bp.name) as `Edit`,
+	bp.`type` AS `rank_beginning`,
+	bp.rank_update , 
+	case when bp.contract_status = 'Contracted' then 'Contracted' when bp.contract_status = 'Cancelled' then 'Cancelled' else bp.rank_update end `Now Result`,
+	is_sales_partner as `SP_rank`,
+	case when bp.rank1 in ('S','A','B','C') then 1 else 0 end as `rank1_SABC`,
+	case when rank_update in ('S','A','B','C') then 1 else 0 end as `SABC`, 
+	case when bp.modified >= date_format(curdate(), '%Y-%m-01')  then 'called' else 'x' end as `call_ status`,
+	bp.visit_or_not ,
+	bp.ringi_status ,
+	bp.disbursement_date_pay_date ,
+	bp.credit,
+	bp.rank_of_credit,
+	bp.reason_of_credit,
+	case when bp.credit_remark is not null then bp.credit_remark else bp.contract_comment end as `comments`,
+	null as `is_own`,
+	bp.own_salesperson
+from tabSME_BO_and_Plan bp 
+inner join temp_sme_pbx_BO_special_management tspbsm on (tspbsm.bp_name = bp.name and tspbsm.management_type = 'SAB for UL & TL')
+left join sme_org sme on (case when locate(' ', tspbsm.current_staff) = 0 then tspbsm.current_staff else left(tspbsm.current_staff, locate(' ', tspbsm.current_staff)-1) end = sme.staff_no)
+order by sme.id asc;
 
 
 

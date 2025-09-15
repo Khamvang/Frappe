@@ -285,7 +285,7 @@ GROUP BY broker_tel ;
 -- check the result by Broker (ROW DATA)
 SELECT broker_tel, disbursed_date , ringi_status , contract_status 
 FROM sme_hc_result 
-WHERE broker_tel IS NOT NULL ;
+WHERE broker_tel = '902099965547';
 
 
 
@@ -374,13 +374,6 @@ order by sme.id asc;
 
 
 
-SELECT *, broker_tel FROM tabsme_Sales_partner ;
-show index from tabsme_Sales_partner;
-
-create index idx_broker_tel on tabsme_Sales_partner(broker_tel)
-
-
-show processlist
 
 
 
