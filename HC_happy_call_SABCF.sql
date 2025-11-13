@@ -342,7 +342,7 @@ update tabSME_BO_and_Plan bp inner join temp_sme_pbx_BO tb on (tb.id = bp.name)
 set bp.staff_no = tb.current_staff ;
 
 -- 10)
-
+select * from temp_sme_pbx_BO where `type` in ('S', 'A', 'B', 'C');
 
 
 
